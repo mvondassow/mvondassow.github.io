@@ -1,51 +1,76 @@
 <!DOCTYPE html>
 <head>
+  <meta charset="utf-8">
   <script src="http://www.numericjs.com/lib/numeric-1.2.6.min.js"></script>
 </head>
 <html>
   <body>
+    <p>This is an attempt to visuallize covariant and contravariant components of vectors. If you let your eyes cross until the left and right images overlap, you can see the system in 3D.</p>
 
+    <svg id="v1" width="300" height="300"></svg>
+    <svg id="v2" width="300" height="300"></svg>    
+
+<div>
+    <button type="button" id="myBtn" onclick="myfun()" style="float:right">Use transformation</button>
+
+    <p>Enter a tranformation: </p>
     <table id="trTab">
     </table>
+    
+    <p>Enter a vector: </p>
+    <table id="vecTab">
+    </table>    
 
-    <svg id="v1" width="300" height="300">
-    </svg>
-    <svg id="v2" width="300" height="300">
-    </svg>
-
-    <button type="button" id="myBtn" onclick="myfun()">My inputs are?</button>
     <p id="test">
     </p>
-
+</div>
 
     <script>
       var B0 = [ [1,0,0], [0,1,0], [0,0,1] ]; // Initial transformation matrix
-      var inputs, V, f1, f2, theta, item; // Initialize variables (DOM input object array, vector)
+      /* Initialize variables (DOM input object array, vector group, plot groups
+       * angle between image, and variable for loops)
+      */
+      var trTable, V, f1, f2, theta, item, newVecTable, nCols;
 
       /*
       * Create a table of input (Numeric) input fields with step defined
       * @param {array} B Initial values for elements in table of input fields
       * @return {array} Array of input DOM element objects
       */
-      function addInputTable(B) {
-        // trTab: variable for table; row/col: variables for row and col count
-        var trTab, row, col, newcell; 
+      function addInputTable(B, tabID, props) {
+        //Define default values
+        var step = ((typeof props === "undefined")||
+                (typeof props["step"] === "undefined"))?0.1:props["step"];
+        var style = ((typeof props === "undefined")||
+                (typeof props["style"] === "undefined"))?"width:7em":props["style"];
+        var decimals = ((typeof props === "undefined")||
+                (typeof props["decimals"] === "undefined"))?10:props["decimals"];
+
+        // newTable: variable for table; row/col: variables for row and col count
+        var newTable, row, col, newcell, corval; 
         var tr=[]; // Initialize array for rows
         var inputs=[]; // Initialize array for input fields
-        trTab = document.getElementById('trTab'); // Get table element
+        newTable = document.getElementById(tabID); // Get table element
 
         for (row=0; row < B.length; row++){
-          tr[row] = trTab.insertRow(row); // Add new row to table
+          tr[row] = newTable.insertRow(row); // Add new row to table
           inputs.push([]); // Add new array (row) element to inputs array.
 
-          for (col=0; col < B[row].length; col++){
+          // Handle case when not array of arrays.
+          nCols = (typeof B[row].length === "undefined")?1:B[row].length;
+
+          for (col=0; col < nCols; col++){
             newcell = tr[row].insertCell(col); // Add new table cell
             // Create input element, set type and value, and add to table cell 
             // in DOM
             inputs[row][col]=document.createElement("INPUT");
             inputs[row][col].setAttribute("type", "number");
-            inputs[row][col].setAttribute("value", B[row][col]);
-            inputs[row][col].setAttribute("step", 0.1);
+            // Set value and handle cases when element is single value or array
+            curval = (typeof B[row].length === "undefined")?B[row]:B[row][col]
+            inputs[row][col].setAttribute("value",
+                Math.round(Math.pow(10, decimals)*curval)/Math.pow(10,decimals));
+            inputs[row][col].setAttribute("step", step);
+            inputs[row][col].setAttribute("style", style);
             newcell.appendChild(inputs[row][col]);
           }
         }
@@ -65,7 +90,7 @@
           outs.push([]); // Add new array element (row) to output array.
           for (col=0; col < inputArray[row].length; col++){
             // Get value from each input DOM element
-            outs[row][col]=inputs[row][col].value; 
+            outs[row][col]=inputArray[row][col].value; 
           }
         }
         return outs;
@@ -201,7 +226,7 @@
       
     try { 
       // Create table for user input.
-      inputs = addInputTable(B0);
+      trTable = addInputTable(B0, 'trTab');
       // Create plotting elements
       theta = 2;
       f1 = new plotGroup("v1");
@@ -211,7 +236,11 @@
       f2.p1 = [Math.cos(-Math.PI*theta/180),0, Math.sin(-Math.PI*theta/180)]
       f2.p2 = [0,1,0]
       // Create set of vectors
-      V = new vectorGroup(readInputs(inputs));
+      V = new vectorGroup(readInputs(trTable));
+
+      // Create table to enter vector
+      newVecTable = addInputTable(V.V.xyz, 'vecTab');
+
       // Plot vectors
       for (item in V) {
         f1.newLine(item); 
@@ -229,8 +258,11 @@
       // Function to confirm input and transformed vector.
       function myfun () {
 try {
-        var T = readInputs(inputs);
+        var T = readInputs(trTable);
         var tt = numeric.transpose(numeric.inv(T));
+        // readInputs() returns array of arrays so have to flatten.
+        var xyz = readInputs(newVecTable);
+        V.V.xyz = [xyz[0][0], xyz[1][0], xyz[2][0]];
 
         V.b0.xyz = numeric.dot(tt, V.b0.xyz);
         V.b1.xyz = numeric.dot(tt, V.b1.xyz);
@@ -253,7 +285,8 @@ try {
             "<br> det(inv.transform): " + numeric.det(tt) + 
             "<br> det(B): " + numeric.det([V.B0.xyz,V.B1.xyz,V.B2.xyz]) + 
             "<br> det(b): " + numeric.det([V.b0.xyz,V.b1.xyz,V.b2.xyz]) + 
-            "<br> T: " + JSON.stringify(T);
+            "<br> T: " + JSON.stringify(T) + 
+            "<br> V: " + xyz;
 } catch(err) {
   window.alert("B: " + err);
 }
