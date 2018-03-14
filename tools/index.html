@@ -1,0 +1,9 @@
+---
+layout: default
+---
+<h4>Tools</h4>
+The following are a few tools (functions, scripts, etc) that I made for various projects. Most were created in the context of a larger product so they might need tweaking for other purposes.
+{% for tool in site.tools %}
+  <h3><a href="{{ tool.url | prepend: site.baseurl }}">{{ tool.title }}</a></h3>
+  {{ tool.excerpt }}<a href="{{ tool.url | prepend: site.baseurl }}">... [continue reading]</a>
+{% endfor %}

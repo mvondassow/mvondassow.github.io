@@ -1,0 +1,36 @@
+<script>
+var myInterval = setInterval(randomQnan, 1000);
+
+function randomQnan() {
+    var a = document.getElementById("qnan")
+    var x = Math.random().toString(2).substr(2,32).split("").fill("1", 1,10)
+    kmax=x.length
+    for (k=kmax-4; k>=4; k-=4) {
+    	x.splice(k,0," ")
+    }
+    a.innerHTML = x.join("")
+
+}
+
+randomQnan()
+</script>
+
+<aside>
+	<div class="container">
+		<nav>
+			<ul>
+				{% for page in site.pages %} {% if page.title %}
+				<li><a href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></li>
+				{% endif %} {% endfor %}
+                <li><a href="{{ "/research" | prepend: site.baseurl }}">Research</a></li>
+				<!--<li><a href="{{ "/blog" | prepend: site.baseurl }}">Blog</a></li> -->
+			</ul>
+			</li>
+			</ul>
+		</nav>
+	</div>
+</aside>
+
+<header>
+	<h1><a id="qnan" href="/">0111 1111 1100 0000 0000 0000 0010 1010</a></h1>
+</header>
