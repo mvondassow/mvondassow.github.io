@@ -5,299 +5,474 @@
 </head>
 <html>
   <body>
-    <p>This is an attempt to visuallize covariant and contravariant components of vectors. If you let your eyes cross until the left and right images overlap, you can see the system in 3D.</p>
+    <p>This is an attempt to visuallize covariant and contravariant components of vectors, something I find difficult. If you let your eyes cross until the left and right images overlap, you can see the system in 3D. You can also make it rotate to see the 3D orientations more easily.</p>
 
-    <svg id="v1" width="300" height="300"></svg>
-    <svg id="v2" width="300" height="300"></svg>    
+    <svg id="vectorPlotSVG" width="600" height="300"></svg>   
 
 <div>
-    <button type="button" id="myBtn" onclick="myfun()" style="float:right">Use transformation</button>
+    <p> To make images turn, enter orbits per second:
+    <input type="number" id="orbitHz" value=0 step=0.1>
 
-    <p>Enter a tranformation: </p>
-    <table id="trTab">
+    <p>Enter a coordinate system tranformation: </p>
+    <button type="button" id="myBtn" onclick="myfun()" style="float:right">Update diagrams</button>
+
+    <table id="trTable">
     </table>
     
-    <p>Enter a vector: </p>
-    <table id="vecTab">
+    <p>Or enter a new vector: </p>
+    <table id="vecTable">
     </table>    
+
+    <p> Clicking "Update diagrams" will transform the coordinate bases (blue: contravariant; green: covariant) based on the matrix in the upper table and/or change the vector to the vector in the lower table. Co- and contra-variant components of the vector are shown in dotted lines. <br><br> A list of the components of the vectors and the determinant of the transform are shown below. Coordinates of the initial vector (V1_rec) and and the co- and contra-variant basis vectors of the transformed coordinate system are given in rectangular cartesian coordinates; V_cnt* and V_cov* are vectors formed by the product of the co- and contra-variant components of the given vector and the corresponding contra- and co-variant basis vectors.</p>
 
     <p id="test">
     </p>
+
 </div>
 
     <script>
-      var B0 = [ [1,0,0], [0,1,0], [0,0,1] ]; // Initial transformation matrix
-      /* Initialize variables (DOM input object array, vector group, plot groups
-       * angle between image, and variable for loops)
-      */
-      var trTable, V, f1, f2, theta, item, newVecTable, nCols;
+    try {
+        // Create table for entering values of coordinate transformation.
+        var trTable = new InputTable([ [1,0,0], [0,1,0], [0,0,1] ], "trTable");
+        // Create table for changing vector.
+        var vecTable = new InputTable(randR3(), "vecTable");
+        // Get vector from vecTable
+        var randV = vecTable.readInputs().map(function (x) {return x[0]})
+        // Generate plot.
+        var VP = new VectorPlot("vectorPlotSVG", {V1: randV},
+                                trTable.readInputs());
+    } catch (err) {
+        alert(err);
+    }
 
-      /*
-      * Create a table of input (Numeric) input fields with step defined
-      * @param {array} B Initial values for elements in table of input fields
-      * @return {array} Array of input DOM element objects
-      */
-      function addInputTable(B, tabID, props) {
-        //Define default values
-        var step = ((typeof props === "undefined")||
-                (typeof props["step"] === "undefined"))?0.1:props["step"];
-        var style = ((typeof props === "undefined")||
-                (typeof props["style"] === "undefined"))?"width:7em":props["style"];
-        var decimals = ((typeof props === "undefined")||
-                (typeof props["decimals"] === "undefined"))?10:props["decimals"];
-
-        // newTable: variable for table; row/col: variables for row and col count
-        var newTable, row, col, newcell, corval; 
-        var tr=[]; // Initialize array for rows
-        var inputs=[]; // Initialize array for input fields
-        newTable = document.getElementById(tabID); // Get table element
-
-        for (row=0; row < B.length; row++){
-          tr[row] = newTable.insertRow(row); // Add new row to table
-          inputs.push([]); // Add new array (row) element to inputs array.
-
-          // Handle case when not array of arrays.
-          nCols = (typeof B[row].length === "undefined")?1:B[row].length;
-
-          for (col=0; col < nCols; col++){
-            newcell = tr[row].insertCell(col); // Add new table cell
-            // Create input element, set type and value, and add to table cell 
-            // in DOM
-            inputs[row][col]=document.createElement("INPUT");
-            inputs[row][col].setAttribute("type", "number");
-            // Set value and handle cases when element is single value or array
-            curval = (typeof B[row].length === "undefined")?B[row]:B[row][col]
-            inputs[row][col].setAttribute("value",
-                Math.round(Math.pow(10, decimals)*curval)/Math.pow(10,decimals));
-            inputs[row][col].setAttribute("step", step);
-            inputs[row][col].setAttribute("style", style);
-            newcell.appendChild(inputs[row][col]);
-          }
+        function myfun() {
+            try {
+                
+                var newV = vecTable.readInputs().map(function (x) {return x[0]});
+                VP.update({V1: newV}, trTable.readInputs());
+                var mystr = "";
+                for (var item in VP.coords.elements) {
+                    mystr += "<br>" + item + ": " + 
+                        JSON.stringify(VP.coords.elements[item].end);
+                }
+                document.getElementById("test").innerHTML = mystr + "<br>" + 
+                    JSON.stringify(VP.coords.about()); 
+                    
+            } catch (err) {
+                alert(err);
+            }
         }
 
-        return inputs;
-      }
+        /**
+        * Get user input for orbit frequency and orbit system (rotate plane of
+        * view) every n ms. n set to 40 so appears smooth with minimal overhead;
+        * conversion factor of 14.4 to convert from orbits per second to
+        * degrees. Ignores values of zero or non-numeric values to reduce
+        * overhead.
+        **/
+        var orbitSpeed = document.getElementById("orbitHz")
+        setInterval(
+            function () {
+                var degPer = Number(orbitSpeed.value)*14.4;
+                if ((!Number.isNaN(degPer)) && (degPer !== 0)) {
+                    VP.orbit(degPer);
+                }
+                }, 40);
+        /*
+        * Create a table of input (Numeric) input fields with step defined
+        * @param {array} B Initial values for elements in table of input fields
+        * @param {string} tabID Id of table element to modify.
+        * @param {object} props Object containing information about format.
+        * @method {function} readTable Get values from table object.
+        */
+        function InputTable(B, tabID, props) {
+            //Define defaults for input cell formats/rounding
+            var step = ((typeof props === "undefined")||
+                    (typeof props["step"] === "undefined"))?
+                    0.1:props["step"];
+            var style = ((typeof props === "undefined")||
+                    (typeof props["style"] === "undefined"))?
+                    "width:7em":props["style"];
+            var decimals = ((typeof props === "undefined")||
+                    (typeof props["decimals"] === "undefined"))?
+                    10:props["decimals"];
 
-      /*
-      * Read values from an array of DOM input fields.
-      * @param {array} inputArray Array of input DOM objects
-      * @return {array} Values from input elements in array
-      */
-      function readInputs(inputArray) {
-        var outs = []; // Initialize array to store values from input table.
-        var row, col
-        for (row=0; row < inputArray.length; row++){
-          outs.push([]); // Add new array element (row) to output array.
-          for (col=0; col < inputArray[row].length; col++){
-            // Get value from each input DOM element
-            outs[row][col]=inputArray[row][col].value; 
-          }
+            // newTable: variable for table; row/col: variables for row and col count
+            var newTable, row, col, newcell, corval; 
+            var tr=[]; // Initialize array for rows
+            var inputs=[]; // Initialize array for input fields
+            newTable = document.getElementById(tabID); // Get table element
+
+            for (row=0; row < B.length; row++){
+                tr[row] = newTable.insertRow(row); // Add new row to table
+                inputs.push([]); // Add new array (row) element to inputs array.
+
+                // Handle case when B is not array of arrays.
+                nCols = (typeof B[row].length === "undefined")?1:B[row].length;
+
+                // Create cell & input element and set type & value
+                for (col=0; col < nCols; col++){
+                    newcell = tr[row].insertCell(col);
+                    inputs[row][col]=document.createElement("INPUT");
+                    inputs[row][col].setAttribute("type", "number");
+                    // Set value; handle if element is single value or is array
+                    curval = (typeof B[row].length === "undefined")?
+                            B[row]:B[row][col]
+                    // Round to set number of decimals; otherwise fails to step 
+                    // properly when given values that use full depth of float.
+                    inputs[row][col].setAttribute("value",
+                        Math.round(Math.pow(10, decimals)*curval
+                        )/Math.pow(10,decimals));
+                    inputs[row][col].setAttribute("step", step);
+                    inputs[row][col].setAttribute("style", style);
+                    // Make cell visible
+                    newcell.appendChild(inputs[row][col]);
+                }
+            }
+
+            /*
+            * Read values from an array of DOM input fields.
+            * @param {array} inputArray Array of input DOM objects
+            * @return {array} Values from input elements in array
+            */
+            this.readInputs = function () {
+                var outs = [];
+                var row, col
+                for (row=0; row < inputs.length; row++){
+                    outs.push([]);
+                    for (col=0; col < inputs[row].length; col++){
+                        outs[row][col] = Number(inputs[row][col].value); 
+                    }
+                }
+                return outs;
+            }
         }
-        return outs;
-      }
 
-      /*
-      * For space with dim of input array, create a unit vector with random
-      * orientation
-      * @param {array} nxn array of arrays.
-      * @return {array} random vector.
-      */
-      function rand3Vect() {
+    function VectorPlot(svgID, Vs, Tr) {
+        this.coords = new CoordinateGroup(Tr);
+        this.panels = [new Panel(svgID, "L", 2.5, 0), new Panel(svgID, "R", 2.5, 0)];
+
+        this.update = function (newVs, newTr) {
+            var k, vec;
+            this.coords.updateBasis(newTr);
+            for (vec in newVs) {
+                this.coords.newVector(vec, newVs[vec]);
+            }
+            for (k=0; k<this.panels.length; k++) {
+                this.panels[k].updateLines(this.coords.elements);
+            }
+        }
+        this.update(Vs, Tr);
+
+        this.orbit = function(alpha) {
+            for (k=0; k<this.panels.length; k++) {
+                this.panels[k].orbitView(alpha);
+                this.panels[k].updateLines(this.coords.elements);
+            }
+        }
+    }
+
+
+/* Panel object: should contain lines for each panel, plus information about 
+xy-center and viewing orientation. Included option for having just one panel.
+*/
+    function Panel(svgID, position, theta, alpha) {
+        var that = this;
+        // Get DOM object for SVG
+        this.svg = document.getElementById(svgID);
+        // All line elements to display
+        this.lines = {};
+
+        // Set/update view details
+        this.updateView = function (pos, tht, alp) {
+            var xmid = this.svg.attributes.getNamedItem("width").value/2;
+            var ymid = this.svg.attributes.getNamedItem("height").value/2;
+            var angle;
+
+            this.position = pos;
+            this.theta = tht; // Angle between plane of view and normal in stereo pair
+            this.alpha = alp; // Rotation increment
+
+            if (pos === "L") {
+                // xy center of panel
+                this.xy0 = [0.5*xmid, ymid];
+                // Angle of viewing plane
+                angle = alp+tht;
+            } else if (pos === "R") {
+              this.xy0 = [1.5*xmid, ymid];
+                angle = alp-tht;
+            } else if (pos === "M") {
+                this.xy0 = [xmid, ymid];
+                angle=alp+tht;
+            } else {
+                throw "position for panels should be 'L', 'R', or 'M'";
+            }
+
+            // Define viewing plane (including orientation)
+            angle = Math.PI*angle/180;
+            this.plane = [[Math.cos(angle), 0, Math.sin(angle)], [0,1,0]];
+            // Scaling of lines
+            this.scale = 0.75*Math.min(0.5*xmid, ymid);
+
+        };
+        // Update view upon creation of panel
+        this.updateView(position, theta, alpha);
+
+        // Orbit beta degrees around y-axis.
+        this.orbitView = function (beta) {
+            this.updateView(this.position, this.theta, beta+this.alpha);
+        }
+
+        this.updateLines = function (vecs) {
+            var item;
+            for (item in vecs) {
+                newLine(item);
+                plotVec(this.lines[item], vecs[item]);
+            }
+        }
+
+        /**
+        * Add line element to svg object and associate with linegroup object
+        * @param {string} vecName Name of vector associated with line.
+        **/
+        function newLine (vecName) {
+            if (typeof that.lines[vecName] === 'undefined') {
+                var li = document.createElementNS('http://www.w3.org/2000/svg',
+                    'line');
+                that.svg.appendChild(li);
+                that.lines[vecName] = li;
+            };
+        };
+
+        /**
+        * Remove line element from svg object and associated linegroup object
+        * @param {string} vecName Name of vector associated with line.
+        **/
+        function removeLine (vecName) {
+            if (typeof that.lines[vecname] !== 'undefined') {
+                that.lines[vecName].parentNode.removeChild(that.lines[vecName]);
+            };
+        };
+
+        /** Change attributes of a line element to show vec projection on p1-p2
+        *  plane.
+        * @param {object} li Line element to change
+        * @param {array} vec Vector to plot: numeric 1D array with length 3
+        * @param {array} p1 Basis vector for plane: numeric 1D array, length 3
+        * @param {array} p2 Basis vector for plane: numeric 1D array, length 3
+        * @param {array} xy0 Two element array: x-y coordinates of origin.
+        * @param {number} scale Scaling for vector
+        * @param {string} style String to give vector styling
+        **/
+        function plotVec(li, coordObj) {
+            var xyStart = projOnPlane(coordObj.start, that.plane);
+            var xyEnd = projOnPlane(coordObj.end, that.plane);
+
+            li.setAttribute("x1", that.scale*xyStart[0]+that.xy0[0]);
+            // Makes Y negative because y axis points downward in SVG.
+            li.setAttribute("y1", -that.scale*xyStart[1]+that.xy0[1]);
+            li.setAttribute("x2", that.scale*xyEnd[0]+that.xy0[0]);
+            // Makes Y negative because y axis points downward in SVG.
+            li.setAttribute("y2", -that.scale*xyEnd[1]+that.xy0[1]); 
+            // Add line styling
+            li.setAttribute("style", coordObj.style);
+        }
+
+        /**
+        * Find projection of vector vec onto plane defined by p1 & p2 (p1 and p2 
+        * are orthogonal unit basis vectors of plane)
+        * unit vectors, result is 
+        * @param {array} vec Vector (1d array) whose projection is sought 
+        * @param {array} p1 Unit vector in plane
+        * @param {array} p2 Unit vector in plane orthogonal to p2
+        * @return {array} Projection of 'vec' onto plane defined by 'normal'
+        **/
+        function projOnPlane(xyz, plane, tol) {
+            var tol = (typeof tol !== "undefined")?tol:0.001
+            try {
+                if(Math.abs(numeric.norm2(plane[0]) - 1) > tol) throw "p1 is not a unit vector";
+                if(Math.abs(numeric.norm2(plane[1]) - 1) > tol) throw "p2 is not a unit vector";
+                if(Math.abs(numeric.dot(plane[0], plane[1])) > tol) throw "p1 and p2 are not orthogonal";
+            } catch(err) {
+                alert("projOnPlane: " + err + ". Values may not be as expected");
+            } finally {
+                return [numeric.dot(xyz, plane[0]), numeric.dot(xyz, plane[1])];
+            }
+        }
+
+    }
+
+        /**
+         * @param {Object} TrObject Transform object. 
+        **/
+        function CoordinateGroup(TrArray) {
+            var that=this;
+            var TrObject=new Transform(TrArray);
+            var k;
+            var origin = [0,0,0];
+            // Object containing each set of coordinates to plot
+            this.elements = {};
+            // Object associating sets of coordinates with specific vectors
+            this.vectors = {};
+            // Object associating coordinate pair types with styles
+            this.styleObj = {
+                Vrec: "stroke:rgb(255,0,0);stroke-width:2",
+                Vcnt: "stroke:rgb(0,0,240);stroke-width:1;stroke-dasharray:4,4;",
+                Vcov: "stroke:rgb(0,240,0);stroke-width:1;stroke-dasharray:5,5;",
+                cntBasis: "stroke:rgb(0,240,0);stroke-width:2",
+                covBasis: "stroke:rgb(0,0,240);stroke-width:3"
+            };
+
+            /** Calculate basis vectors based on Transform object given; enter
+             *  basis vectors as named properties of elements object.
+             *  @param {object} Tr Transform object
+            **/
+            this.updateBasis = function (newTrArray) {
+                var k;
+                TrObject.update(newTrArray);
+                // generate/regenerate contravariant basis elements
+                for (k = 0; k < 3; k++) {
+                    newElement( "covBasis"+k, origin, TrObject.covBasis[k], 
+                                "covBasis", this);
+                    newElement( "cntBasis"+k, origin, TrObject.cntBasis[k], 
+                                "cntBasis", this);
+                }
+            }
+            // Update upon CoordinateGroup creation.
+            this.updateBasis(TrArray);
+
+            /**
+            * Add a new vector and associated covariant and contravariant
+            * component 'vectors' 
+            * @param {array} xyz Length 3 numeric array. 
+            **/
+            this.newVector = function (name, xyz) {
+                var k;
+                var xyz0cnt = origin;
+                var xyz0cov = origin;
+                var xyzfcnt, xyzfcov;
+                var compVecs = TrObject.compTuples(xyz);
+            
+                newElement(name + "_rec", origin, xyz, "Vrec", this);
+
+                for (k = 0; k < 3; k++) {
+                    xyzfcnt = numeric.add(xyz0cnt,
+                                          compVecs["contravariant"][k]);
+                    newElement(name + "_cnt" + k, xyz0cnt, xyzfcnt, "Vcnt", this);
+                    xyz0cnt = xyzfcnt;
+
+                    xyzfcov = numeric.add(xyz0cov, compVecs["covariant"][k]);
+                    newElement(name + "_cov" + k, xyz0cov, xyzfcov, "Vcov", this);
+                    xyz0cov = xyzfcov;
+                }
+            }
+
+            /** Enforce structure of coordinate objects stored in obj.
+             * @param {string} name Name of element to add.
+             * @param {array} xyz0 Coordinates of initial point.
+             * @param {array} xyzf Coordinates of final point.
+             * @param {string} type Name of type of element to add
+             * @param {object} obj Object (must have properties "elements" and
+             *                     "styleObj")
+            **/
+            function newElement (name, xyz0, xyzf, type, obj) {
+                obj.elements[name] = {  start: xyz0, end: xyzf,
+                                        style: obj.styleObj[type]};
+            }
+
+            // Return information about coordinate system
+            this.about = function() {
+                return TrObject.about();
+            }
+        }
+
+        function Transform(Tr) {
+            var that = this;
+
+            this.update = function (TrNew) {
+                // Use rectangular coordinates if transform matrix not given.
+                this.Tr = (typeof TrNew !== 'undefined')?
+                            TrNew:[[1,0,0],[0,1,0],[0,0,1]];
+                this.invTr = numeric.inv(this.Tr);
+                this.covBasis = numeric.transpose(this.invTr);
+                this.cntBasis = this.Tr;
+            };
+            this.update(Tr);
+
+            /** Find covariant components of 3-vector V following the
+            * tranform Tr.
+            * @param {array} V Numeric length 3 array
+            * @return {array} length 3 array
+            **/
+            function covComp(V) {
+                return numeric.dot(numeric.transpose(that.invTr), V);
+            }
+
+            /** Find contravariant components of 3-vector V following the
+            * tranform Tr.
+            * @param {array} V Numeric length 3 array
+            * @return {array} length 3 array
+            **/
+            function cntComp(V) {
+                return numeric.dot(that.Tr, V);
+            }
+
+            /** For vector components in 3-tuple V find covariant and 
+            * contravariant component vectors (i.e. the vectors parallel to the
+            * basis vectors that sum to vector V, with those vectors components
+            * represented in the original rectangular cartesian coordinate
+            * system.
+            * @param {array} V Numeric length 3 array: the components of V in
+            *    rectangular cartesian coordinates.
+            * @return {object} keys: which basis of the coordinate system;
+            *    values: array of arrays (length 3), each sub-array is the
+            *    component vector with coordinates in rectangular cartesian
+            *    coordinate system.
+            **/
+            this.compTuples = function (V) {
+                var cov=[]; var cnt=[]; var k;
+                var Vcov = covComp(V);
+                var Vcnt = cntComp(V);
+                for (k = 0; k < 3; k++) {
+                    cov.push(numeric.dot(Vcov[k], this.cntBasis[k]));
+                    cnt.push(numeric.dot(Vcnt[k], this.covBasis[k]));
+                }
+                return {covariant: cov, contravariant: cnt}
+            }
+
+            // Return information about coordinate system.
+            this.about = function() {
+                var out = {};
+                out.determinant = numeric.det(this.Tr);
+                // the dot product of the covariant and contravarinant bases
+                // should be the Kronecker delta.
+                out.cov_dot_cnt_bases = numeric.dot(this.covBasis,
+                                        numeric.transpose(this.cntBasis));
+                return out;
+            }
+
+        }
+
+    /*
+    * Create a unit 3-tuple with a random orientation
+    * @return {array} random vector.
+    */
+    function randR3() {
         // Generate rotation angles for all three axes (could just do 2, but...)
         var T = [Math.random(), Math.random(), Math.random()].map(
                 function (x) {return x*2*Math.PI});
         var sinT = T.map(Math.sin);
         var cosT = T.map(Math.cos);
-
         var col, row, V;
 
         // Generate individual rotation matrices.
-        var R3 = [ [cosT[2], -sinT[2], 0], [sinT[2], cosT[2], 0], [0, 0, 1] ];
-        var R2 = [ [cosT[1], 0, sinT[1]], [0, 1, 0], [-sinT[1], 0, cosT[1]] ];
-        var R1 = [ [1, 0, 0], [0, cosT[0], -sinT[0]], [0, sinT[0], cosT[0]] ];
+        var R3 = [[cosT[2], -sinT[2], 0], [sinT[2], cosT[2], 0], [0, 0, 1]];
+        var R2 = [[cosT[1], 0, sinT[1]], [0, 1, 0], [-sinT[1], 0, cosT[1]]];
+        var R1 = [[1, 0, 0], [0, cosT[0], -sinT[0]], [0, sinT[0], cosT[0]]];
 
         // Rotate unit vector
         return numeric.dot(numeric.dot(numeric.dot(R3, R2), R1), [1,0,0]);
-      }
-
-      /*
-      * Find projection of vector vec onto plane defined by p1 & p2 (p1 and p2 
-      * are orthogonal unit basis vectors of plane)
-      * unit vectors, result is 
-      * @param {array} vec Vector (1d array) whose projection is sought 
-      * @param {array} p1 Unit vector in plane
-      * @param {array} p2 Unit vector in plane orthogonal to p2
-      * @return {array} Projection of 'vec' onto plane defined by 'normal'
-      */
-      function projOnPlane(vec, p1, p2, tol) {
-        var tol = (typeof tol !== "undefined")?tol:0.001
-        try {
-            if(Math.abs(numeric.norm2(p1) - 1) > tol) throw "p1 is not a unit vector";
-            if(Math.abs(numeric.norm2(p2) - 1) > tol) throw "p2 is not a unit vector";
-            if(Math.abs(numeric.dot(p1, p2)) > tol) throw "p1 and p2 are not orthogonal";
-        }
-        catch(err) {
-            window.alert("projOnPlane: " + err + ". Values may not be as expected");
-        } finally {
-          return [numeric.dot(vec, p1), numeric.dot(vec, p2)];
-        }
-      }
-
-      /* Change attributes of a line element to show vec projection on p1-p2
-      *  plane.
-      * @param {object} li Line element to change
-      * @param {array} vec Vector to plot: numeric 1D array with length 3
-      * @param {array} p1 Basis vector for plane: numeric 1D array with length 3
-      * @param {array} p2 Basis vector for plane: numeric 1D array with length 3
-      * @param {array} xy0 Two element array: x-y coordinates of origin.
-      * @param {number} scale Scaling for vector
-      * @param {string} style String to give vector styling
-      */
-      function plotVec(li, vec, p1, p2, xy0, scale, style) {
-        var xy = projOnPlane(vec, p1, p2);
-        // Check whether called with style parameter; otherwise use defaults
-        var style = (typeof style !== "undefined") ? style : "stroke:rgb(0,0,0);stroke-width:2"
-        li.setAttribute("x1", xy0[0]);
-        li.setAttribute("y1", xy0[1]);
-        li.setAttribute("x2", scale*xy[0]+xy0[0]);
-        // Makes Y negative because y axis points downward in SVG.
-        li.setAttribute("y2", -scale*xy[1]+xy0[1]); 
-        // Add line styling
-        li.setAttribute("style", style);
-      }
-      
-      /* Create onject with elements associated with svg system
-       * @param {string} svgID ID of svg element in HTML
-       * @property {object} svg SVG DOM object
-       * @property {array} xy0 2 element array with x-y center numbers
-       * @property {numeric} scale Scale factor for line display
-       * @property {object} lines Line elements associated with plotGroup object
-       * @ 
-      */
-
-      function plotGroup(svgID) {
-        //for getting x-y center
-        this.svg = document.getElementById(svgID);
-        this.xy0 = [ this.svg.attributes.getNamedItem("width").value/2,
-                    this.svg.attributes.getNamedItem("height").value/2  ];
-        this.scale = 0.75*Math.min(this.xy0[0], this.xy0[1])
-        this.lines = {};
-        /*
-        * Add line element to svg and associate with 'this.lines' property
-        * @param {string} vecName Name of vector associated with line
-        */
-        this.newLine = function(vecName) {
-          var li = document.createElementNS('http://www.w3.org/2000/svg','line');
-          this.svg.appendChild(li);
-          this.lines[vecName] = li;
-        };
-
-      }
-
-      /* Generate vectors.
-       * @param {array} B Array (2d) representing transformation from rectilinear
-            cartesian coordinate system
-       * @property {object} this.V Random vector with coordinates in V.xyz, 
-            drawing style in V.style
-       * @property {object} this.B* Contravariant basis vectors (specified as for V)
-       * @property {object} this.b* Covariant basis vectors (specified as for V)
-      */
-      function vectorGroup (B) {
-        var BT = numeric.transpose(B);
-        var bTt = numeric.inv(B);
-
-        // Create random vector
-        this.V = {xyz: rand3Vect(), 
-                         style: "stroke:rgb(255,0,0);stroke-width:2"};
-
-        // Create vectors for contravariant basis
-        this.B0 = {xyz: BT[0], style: "stroke:rgb(0,120,0);stroke-width:2"};
-        this.B1 = {xyz: BT[1], style: "stroke:rgb(0,180,0);stroke-width:2"};
-        this.B2 = {xyz: BT[2], style: "stroke:rgb(0,240,0);stroke-width:2"};
-
-        // Create vectors for covariant basis
-        this.b0 = {xyz: bTt[0], style: "stroke:rgb(0,0,120);stroke-width:2"};
-        this.b1 = {xyz: bTt[1], style: "stroke:rgb(0,0,180);stroke-width:2"};
-        this.b2 = {xyz: bTt[2], style: "stroke:rgb(0,0,240);stroke-width:2"};
-      }
-
-
-
-      
-    try { 
-      // Create table for user input.
-      trTable = addInputTable(B0, 'trTab');
-      // Create plotting elements
-      theta = 2;
-      f1 = new plotGroup("v1");
-      f1.p1 = [Math.cos(Math.PI*theta/180),0, Math.sin(Math.PI*theta/180)]
-      f1.p2 = [0,1,0]
-      f2 = new plotGroup("v2");
-      f2.p1 = [Math.cos(-Math.PI*theta/180),0, Math.sin(-Math.PI*theta/180)]
-      f2.p2 = [0,1,0]
-      // Create set of vectors
-      V = new vectorGroup(readInputs(trTable));
-
-      // Create table to enter vector
-      newVecTable = addInputTable(V.V.xyz, 'vecTab');
-
-      // Plot vectors
-      for (item in V) {
-        f1.newLine(item); 
-        f2.newLine(item);
-        plotVec(f1.lines[item], V[item].xyz, f1.p1, f1.p2, f1.xy0, 
-            f1.scale, V[item].style);
-        plotVec(f2.lines[item], V[item].xyz, f2.p1, f2.p2, f2.xy0,
-            f2.scale, V[item].style);
-      }
-    } catch(err) {
-      window.alert("A: " + err);
     }
-
-
-      // Function to confirm input and transformed vector.
-      function myfun () {
-try {
-        var T = readInputs(trTable);
-        var tt = numeric.transpose(numeric.inv(T));
-        // readInputs() returns array of arrays so have to flatten.
-        var xyz = readInputs(newVecTable);
-        V.V.xyz = [xyz[0][0], xyz[1][0], xyz[2][0]];
-
-        V.b0.xyz = numeric.dot(tt, V.b0.xyz);
-        V.b1.xyz = numeric.dot(tt, V.b1.xyz);
-        V.b2.xyz = numeric.dot(tt, V.b2.xyz);
-
-        V.B0.xyz = numeric.dot(T, V.B0.xyz);
-        V.B1.xyz = numeric.dot(T, V.B1.xyz);
-        V.B2.xyz = numeric.dot(T, V.B2.xyz);
-        
-        for (item in V) {
-            plotVec(f1.lines[item], V[item].xyz, f1.p1, f1.p2, 
-                f1.xy0, f1.scale, V[item].style);
-            plotVec(f2.lines[item], V[item].xyz, f2.p1, f2.p2, 
-                f2.xy0, f2.scale, V[item].style);
-        }
-
-
-        document.getElementById("test").innerHTML = 
-            "det(Transform): " + numeric.det(T) + 
-            "<br> det(inv.transform): " + numeric.det(tt) + 
-            "<br> det(B): " + numeric.det([V.B0.xyz,V.B1.xyz,V.B2.xyz]) + 
-            "<br> det(b): " + numeric.det([V.b0.xyz,V.b1.xyz,V.b2.xyz]) + 
-            "<br> T: " + JSON.stringify(T) + 
-            "<br> V: " + xyz;
-} catch(err) {
-  window.alert("B: " + err);
-}
-      }
-
-/* 
-* 1) Put plotting function as method for vectors group with plotGroup as parameter
-* 2) Put transformation as method for vector group with matrix as parameter
-    -- Check transformations carefully
-* 3) Add method for user specification of vector to vector group
-*/
 
     </script>
   </body>
