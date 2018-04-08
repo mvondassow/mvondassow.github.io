@@ -4,46 +4,348 @@
 </head>
 <body>
     <div style="width:500px; word-wrap:break-word;">
-        <p id='test1'></p>
-        <p id='test2'></p>
-        <p id='test3'></p>
+        <select id = "catSelector"></select>
+        <p id='category'>t3</p>
     </div>
 <script>
-    var wildlandLists = {"Watch outs": ["Fire not scouted and sized-up", "In country not seen in daylight", "Safety zones and escape routes not identified", "Unfamiliar with weather and local factors influencing fire behavior", "Uninformed about strategy, tactics, and hazards", "Instructions and assignments not clear", "No communications link with crew members or supervisor", "Constructing line without a safe anchor point", "Building fireline downhill with fire below", "Attempting frontal assault on fire", "Unburned fuel between you and the fire", "Cannot see main fire; not in contact with someone who can", "On a hillside where rolling material can ignite fuel below", "Weather becoming hotter and drier", "Wind increases and/or changes direction", "Getting frequent spot fires across fireline", "Terrain and fuels make escape to safety zones difficult", "Taking a nap near the fireline"], "Fire orders": ["Keep informed on fire weather conditions and forecasts.", "Know what your fire is doing at all times.", "Base all actions on current and expected behavior of the fire.", "Identify escape routes and safety zones and make them known.", "Post lookouts when there is a possible danger.", "Be alert. Keep calm. Think clearly. Act decisively.", "Maintain prompt communications with your forces, your supervisor, and adjoining forces.", "Give clear instructions and be sure they are understood.", "Maintain control of your forces at all times.", "Fight fire aggressively, having provided for safety first."], "LaCES": ["Lookout", "awareness", "Communication", "Escape Routes", "Safety Zones"], "Common denominators on fatal fires": ["Most of the incidents occurred on relatively small fires or isolated sectors of large fires. Most of the fires were innocent in appearance prior to the flareup or blowups. In some cases tragedies occurred in the mop-up stage.", "Flareups generally occurred in deceptively light fuels.", "Accidents occurred in chimneys, gullies, or on steep slopes.", "There is a shift in wind direction or in wind speed.", "Suppression tools such as helicopters or airtankers can adversely modify fire behavior. Winds created by wing vortex can change the wind conditions on the ground."], "Why": ["Firefighters underestimated the potential. Firefighters did not recognize subtle changes in weather conditions or fire behavior.", "Firefighters underestimated the extreme rates of spread and heat possible in light fuels.", "Fires and 'super-heated' gas move up steep slopes and canyons with surprising speed. ", "There have been times that a wind event has been predicted and the impact of such an event not appreciated. There are more times that an unpredicted and unexpected shift in wind occurs. This may be associated with the passage of a cold front.", "A low pass by a helicopter or airtanker can cause the fire to flare up or spot across the fireline."]};
-    var wordBank = {};
+    var quizTexts = {"Watch outs": ["Fire not scouted and sized-up", "In country not seen in daylight", "Safety zones and escape routes not identified", "Unfamiliar with weather and local factors influencing fire behavior", "Uninformed about strategy, tactics, and hazards", "Instructions and assignments not clear", "No communications link with crew members or supervisor", "Constructing line without a safe anchor point", "Building fireline downhill with fire below", "Attempting frontal assault on fire", "Unburned fuel between you and the fire", "Cannot see main fire; not in contact with someone who can", "On a hillside where rolling material can ignite fuel below", "Weather becoming hotter and drier", "Wind increases and/or changes direction", "Getting frequent spot fires across fireline", "Terrain and fuels make escape to safety zones difficult", "Taking a nap near the fireline"], "Fire orders": ["Keep informed on fire weather conditions and forecasts.", "Know what your fire is doing at all times.", "Base all actions on current and expected behavior of the fire.", "Identify escape routes and safety zones and make them known.", "Post lookouts when there is a possible danger.", "Be alert. Keep calm. Think clearly. Act decisively.", "Maintain prompt communications with your forces, your supervisor, and adjoining forces.", "Give clear instructions and be sure they are understood.", "Maintain control of your forces at all times.", "Fight fire aggressively, having provided for safety first."], "LaCES": ["Lookout", "awareness", "Communication", "Escape Routes", "Safety Zones"], "Common denominators on fatal fires": ["Most of the incidents occurred on relatively small fires or isolated sectors of large fires. Most of the fires were innocent in appearance prior to the flareup or blowups. In some cases tragedies occurred in the mop-up stage.", "Flareups generally occurred in deceptively light fuels.", "Accidents occurred in chimneys, gullies, or on steep slopes.", "There is a shift in wind direction or in wind speed.", "Suppression tools such as helicopters or airtankers can adversely modify fire behavior. Winds created by wing vortex can change the wind conditions on the ground."], "Why": ["Firefighters underestimated the potential. Firefighters did not recognize subtle changes in weather conditions or fire behavior.", "Firefighters underestimated the extreme rates of spread and heat possible in light fuels.", "Fires and 'super-heated' gas move up steep slopes and canyons with surprising speed. ", "There have been times that a wind event has been predicted and the impact of such an event not appreciated. There are more times that an unpredicted and unexpected shift in wind occurs. This may be associated with the passage of a cold front.", "A low pass by a helicopter or airtanker can cause the fire to flare up or spot across the fireline."]};
 
-    
+/**
+* @param (array) sentences Optional parameter: array of strings.
+**/
+function QuizGenerator (sentences) {
 
-    function sentenceArray(myString, words) {
+    this.wordBank = {}; // Store words as keys in object.
+    this.wordArray = []; // Store words as an array
+    this.sentenceArrays = []; // Store arrays of words/punctuation
+    this.punctuation = /[.,;:]/; // Regex for punctuation marks to separate out
+    this.difficulty = 0.33;
+    this.nChoices = 5;
+    this.element = document.body;
+
+    /**
+     * Takes an array of English sentence with standard punctuation and breaks
+     * each sentence into an array of words and punctuation marks, and adds the
+     * all the words in all the sentence to the wordBank and wordArray
+     * properties.
+     * @param (string) myString A string with English punctuation.
+    **/
+    this.build = function(mySentences) {
+        var k;
+        var kmax = mySentences.length
+        for (k=0; k<kmax; k++) {
+            this.sentenceArrays.push(splitSentence(mySentences[k],
+                this.wordBank, this.wordArray, this.punctuation));
+        }
+    }
+
+    if (sentences) {
+        this.build(sentences);
+    }
+
+    /**
+     * Breaks an English sentence with standard punctuation into an array of
+     * words and punctuation marks, and adds the words to the wb object
+     * @param (string) myString A string with English punctuation.
+     * @param (object) wb Word list as dictionary/associative array
+     * @param (regex) puncList Non-space punctuation characters separate out
+     * @return (array) Array of strings representing elements of sentence
+     *      (words, non-space punctuation marks)
+    **/
+    function splitSentence (myString, wb, wbArray, puncList) {
         var spaceSplit = myString.split(" ");
-        var k, l; 
+        var k, l;
         var kmax = spaceSplit.length;
         var myArray = [];
-        var punc ="";
+        var punc;
         var newWord = "";
+
         for(k=0; k<kmax; k++) {
             l = spaceSplit[k].length;
-            punc = spaceSplit[k].charAt(l-1).match(/[.,;:]/i);
-            if (punc !== null) {
+            punc = puncList.test(spaceSplit[k].charAt(l-1));
+            if (punc) {
                 newWord = spaceSplit[k].slice(0, l-1);
                 myArray.push(newWord);
-                myArray.push(punc);
+                myArray.push(spaceSplit[k].slice(l-1));
             } else {
                 newWord = spaceSplit[k];
                 myArray.push(newWord);
             };
-            words[newWord.toLowerCase()] = null;
+            newWord = newWord.toLowerCase();
+            if (!wb.hasOwnProperty(newWord)) {
+                wbArray.push(newWord);
+                wb[newWord.toLowerCase()] = wbArray.length-1;
+            }
         };
         return myArray;
     }
 
-    var item = wildlandLists["Common denominators on fatal fires"][0];
-    document.getElementById("test1").innerHTML = item;
-    try{
-    document.getElementById("test2").innerHTML = JSON.stringify(sentenceArray(item, wordBank));
-    document.getElementById("test3").innerHTML = JSON.stringify(Object.keys(wordBank));
-    } catch (err) { alert(err) }
+    this.createQuestion = function() {
+        var item = Math.floor(Math.random()*this.sentenceArrays.length);
+        fillInBlanks(this.sentenceArrays[item], this.wordBank, 
+            this.wordArray, this.punctuation, this.difficulty, 
+            this.nChoices, this.element)
+    }
 
+    /**
+     * @param (number) difficulty Fraction of words to convert to blanks
+     *  1 >= difficulty >= 0;
+     * @param (number) nChoices Number of choices per blank to give
+    **/
+    function fillInBlanks (arrayOfStrings, wb, wbArray, puncList, difficulty,
+            nChoices, el) {
+        var original = arrayOfStrings;
+        var k;
+        var kmax = original.length;
+        var choices;
+
+        // Get indices of words in original matching keys in wordBank
+        var wordInds = keyInds(original, wb);
+
+        // Get indices elements of original to replace with selections.
+        var blankInds = randomSubset(wordInds, 
+                Math.floor(difficulty*wordInds.length), "descending");
+        // Create element for question and append;
+        var newEl = document.createElement("div");
+        el.appendChild(newEl);
+        for (k = 0; k<kmax; k++) {
+            if (k === blankInds[blankInds.length - 1]) {
+                blankInds.pop();
+                choices = choiceSet(original[k], wbArray, nChoices);
+                multipleChoice(original[k], choices, newEl);
+            } else {
+                newEl.appendChild(document.createTextNode(
+                    (typeof 
+                    wb[original[k].toLowerCase()] === 'undefined') ? 
+                    original[k] : " " + original[k]
+                    ))
+            }
+        }
+    }
+        /**
+        * Create a multiple choice selection question.
+        * event listener updates score and style if choose correct/false answer
+        * @param () correctAnswer
+        * @param (array) arr Selection choices
+        * @param (DOM object) el Parent DOM object.
+        **/
+        function multipleChoice(correctAnswer, arr, el) {
+            var q = document.createElement("select");
+            var k, item, entry;
+            // Create option elements
+            for (k=0; k<=arr.length; k++) {
+                item = document.createElement("option");
+                if (k === 0) {
+                    entry = "______";
+                } else {
+                    entry = arr[k-1];
+                }
+                item.value = entry;
+                item.innerHTML = entry;
+                q.appendChild(item);
+            }
+
+            el.appendChild(q);
+
+            q.correctAnswer = correctAnswer; // Remember correct answer.
+            q.wasCorrect = false; // Track of whether previous answer was right
+            q.style.backgroundColor = "#ddddff";
+
+            q.addEventListener("change", function () {
+                // parent element's score keeps track of currect/false answers
+                if(typeof el.score === 'undefined') {
+                    el.score = 0;
+                }
+                // Check whether chose correct entry; if changed to correct, 
+                // increase score; if changed to incorrect, decrease score;
+                // keep track of whether previous answer was correct.
+                if (q.value === q.correctAnswer.toString()) {
+                    q.style.backgroundColor = "#99ff99";
+                    if (!q.wasCorrect) {
+                        el.score += 1
+                    }
+                    q.wasCorrect = true;
+                } else {
+                    q.style.backgroundColor = "#ff9999";
+                    if (q.wasCorrect) {
+                        el.score -= 1
+                    }
+                    q.wasCorrect = false;
+                }
+                console.log(el.score);
+            })
+        }
+
+        /** 
+         * Create length n shuffled subset of 'arr' that includes 'correct'
+         * n-1other random elements of arr in random order
+         * @param () correct Any data type
+         * @param (array) arr
+         * @param (number) n
+         * @return (array)
+        **/
+        function choiceSet (correct, arr, n) {
+            var randInds = combNM(arr.length, n);
+            var k;
+            var arrOut = [];
+            var hasCorrect = false;
+            for (k=0; k<n; k++) {
+                arrOut.push(arr[randInds[k]]);
+                if (arrOut[k] === correct) {
+                    hasCorrect = true;
+                }
+            }
+            if (!hasCorrect) {
+                arrOut[Math.floor(Math.random()*n)]=correct;
+            }
+            return arrOut;
+        }
+
+        /** Return indices of arr that match keys in object keyObj.
+         * @param (array) arr
+         * @param (object) keyObj
+         * @return (array) Indices of arr where values of arr are keys in keyObj
+        **/
+        function keyInds(arr, keyObj) {
+            var k; 
+            var kmax = arr.length;
+            var kis = [];
+            // identify which elements of original are in wb
+            for (k = 0; k<kmax; k++) {
+                if (typeof (keyObj[arr[k]]) !== 'undefined') {
+                    kis.push(k);
+                }
+            }
+            return kis;
+        }
+
+        /** Return m random, non-repeating entries from array arr.
+         * @param (array) arr Original array
+         * @param (number) n Number of entries in final array
+         * @param (string) ordered Whether to order 'ascending', 'descending', 
+         *   'random', and 'blank'.
+         * @return (array) A random subset of arr.
+        **/        
+        function randomSubset(arr, n, ordered) {
+            var k;
+            var randInts = combNM(arr.length, n);
+            var kmax = randInts.length;
+            var arrSubset = [];
+            for (k = 0; k<kmax; k++){
+                arrSubset.push(arr[randInts[k]]);
+            }
+            if (ordered === "ascending") {
+                arrSubset.sort(function(a, b) {return a-b;});
+            } else if (ordered === "descending") {
+                arrSubset.sort(function(a, b) {return b-a;});
+            } else if ((typeof ordered !== "undefined") && 
+                (ordered !== "random")) {
+                throw "Order option for randomSubset should be 'ascending', 'descending', 'random', or blank"
+            }
+            return arrSubset;
+        }
+
+        /**
+        * Generate an array of m non-repeating random numbers in the range 0 to
+        * n-1
+        * @param (int) n Upper limit of range of integers to pick from (picks
+        * from 0 ... n-1 so if n = myArray.length, it gives indices within myArray)
+        * @param (int) m Number of positive integers to pick between 0 and n-1
+        * @return (array) Array of integers
+        **/
+        function combNM(n, m) {
+          // For 1...m :
+          //  Pick random integer.
+          //  If integer has been used before
+          //    Choose the iteration number in which it was picked last.
+          //    Associate the integer with the current iteration
+          //  Else
+          //    choose the integer
+          //    Associate the integer with the current iteration
+          if ((m <=n ) && (n > 0) && (m > 0)) {
+            var ris = [];
+            var k = 0;
+            var randInt;
+            var used = {};
+            for (k = 0; k < m; k++) {
+              randInt = Math.floor(Math.random() * (n - k)) + k;
+              ris.push(followKeyValueChain(randInt, used));
+              used[randInt] = k;
+            }
+            return ris;
+          } else if (m>n) {
+            throw "The number of integers picked must be less than or equal to the initial range."
+          } else if (n<0) {
+            throw "The range limit has to be positive"
+          } else if (m<0) {
+            throw "The number of integers picked must be positive"
+          }
+        }
+
+        /**
+         * Follow key-value pairs from key to value until reaches the last value (a key
+         * without a defined value).
+         * @param (...) key Key to test (can be numeric, string, etc)
+         * @param (object) obj Object to search within.
+         * @return (...) The last value which does not correspond to an existing key.
+         * Can be numeric, string, etc.
+         *
+        **/
+        function followKeyValueChain(key, obj) {
+          // Recursively search for final value corresponding to key 'key'
+          // check if key is in object
+          // if not, return key
+          // if so, get final value corresponding to key 'obj[key]'
+          var out;
+          if ((typeof obj[key]) === 'undefined') {
+            out = key;
+          } else {
+            out = followKeyValueChain(obj[key], obj);
+          }
+          return out;
+        }
+
+
+        /**
+        * Randomize array element order in-place (Durstenfeld shuffle algorithm)
+        * Code from: Laurens Holst, https://stackoverflow.com/questions/2450954/
+        */
+        function shuffleArray(origArray) {
+            var myArray = origArray;
+            for (var i = myArray.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = myArray[i];
+            }
+            myArray[i] = myArray[j];
+            myArray[j] = temp;
+        }
     
+
+}
+
+
+
+var catSelector = document.getElementById('catSelector');
+var catChoice;
+var quiz;
+
+for (var key in quizTexts) {
+    catChoice = document.createElement('option');
+    catChoice.value = key;
+    catChoice.innerHTML = key;
+    catSelector.appendChild(catChoice);
+}
+catSelector.addEventListener("change", myCat)
+
+function myCat() {
+    document.getElementById("category").innerHTML = catSelector.value;
+    quiz = new QuizGenerator(quizTexts[catSelector.value]);
+    quiz.createQuestion();
+}
+
+myCat();
+
+
+
 </script>
 </body>
