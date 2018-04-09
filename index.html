@@ -3,5 +3,8 @@ layout: default
 ---
 
   <h2>Something to play with:</h2> 
-
-  <iframe src="/assets/misc/gentable.html" width="100%" height="600px"> </iframe>
+  <div class="tab">
+    <button class="tablinks" onclick = "document.getElementById('myframe').setAttribute('src', '/assets/misc/CoordinateTransform.html')">Vectors</button>
+    <button class="tablinks" onclick = "document.getElementById('myframe').setAttribute('src', '/assets/misc/WildlandQuiz.html')">Quiz Generator</button>
+  </div>
+  <iframe id = "myframe" src="/assets/misc/CoordinateTransform.html" width="100%" height="600px"> </iframe>
