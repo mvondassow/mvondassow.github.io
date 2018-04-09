@@ -5,9 +5,9 @@ categories: current
 ---
 
 <img src="/assets/Colony03NewChimFrontDay4_MaxFrameDifsAsRainbowPlusMedianFrames.jpg" alt="Bryozoan flow" style="float:right;width:300px;padding:10px">
-This project examines how organisms generate complex, stable structures using feedback between form and function. It focuses on one of my favorite creatures, a marine invertebrate that forms arrays of linked individuals which organize hundreds to thousands of themselves into structures that channel  water flow through and out of the array to help the colony of individuals feed.
+This project examines how organisms generate complex, stable structures using feedback between form and function. It focuses on one of my favorite creatures, a marine invertebrate that forms colonies of individuals linked in a sheet-like array. Hundreds to thousands of the individuals organize into structures that channel water through and out of the array, helping the whole colony feed.
 
-My own and others previous experimental work suggested that the fluid flow guides where the colony places openings that let filtered water out of the colony. These 'chimney' openings are shown in accompanying image. The rainbow streaks are flowing particles; the white tentacle crowns are the feeding apparatus of individuals. 
+My own and others' previous experimental work suggested that the pattern of water flow guides where the colony places new openings which let the filtered water out of the colony. These 'chimney' openings are shown in the accompanying image. The rainbow streaks are flowing particles; the white tentacle crowns are the feeding apparatuses of individuals. 
 
 Currently I am developing a computational model of the system to see whether this hypothesis can explain the observed pattern of chimneys, how sensitive this process is to variation in the feedback rules, and what makes the system resilient to things like injuries. More information can be found here on the Github [repo for this project](https://github.com/mvondassow/BryozoanModel2).
 
