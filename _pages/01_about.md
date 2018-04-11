@@ -12,6 +12,6 @@ My background is in biology, but some of the things I am currently learning abou
 * Physics
 * And -- of course -- more coding
 
-The best way to contact me is by email: mvondass   gmail   com
-
 <img src="/assets/Headshot.jpg" style="width:25%">
+
+

@@ -5,33 +5,33 @@
 </head>
 <html>
   <body>
-    <p>This is an attempt to visuallize covariant and contravariant components of vectors, something I find difficult. If you let your eyes cross until the left and right images overlap, you can see the system in 3D. You can also make it rotate to see the 3D orientations more easily.</p>
+    <noscript style="color:red">Javascript appears to be disabled on your browser. This page requires javascript.</noscript>
 
-    <svg id="vectorPlotSVG" width="600" height="300"></svg>   
+    <p>This is a visuallization of how covariant and contravariant components of vectors change during coordinate transformations. Let your eyes cross until the left and right images overlap to see the system in 3D. <br/> To make images turn, enter orbits per second: <input type="number" id="orbitHz" value=0 step=0.1><br/>Enter a coordinate transformation or new vector with the controls at the bottom.</p>
 
-<div>
-    <p> To make images turn, enter orbits per second:
-    <input type="number" id="orbitHz" value=0 step=0.1>
+    <svg id="vectorPlotSVG" width="600" height="300"></svg>
 
-    <p>Enter a coordinate system tranformation: </p>
-    <button type="button" id="myBtn" onclick="myfun()" style="float:right">Update diagrams</button>
+    <div>
 
-    <table id="trTable">
-    </table>
-    
-    <p>Or enter a new vector: </p>
-    <table id="vecTable">
-    </table>    
+        <p>Enter a coordinate system tranformation: </p>
+        <button type="button" id="myBtn" onclick="myfun()" style="float:right">Update diagrams</button>
 
-    <p> Clicking "Update diagrams" will transform the coordinate bases (blue: contravariant; green: covariant) based on the matrix in the upper table and/or change the vector to the vector in the lower table. Co- and contra-variant components of the vector are shown in dotted lines. <br><br> A list of the components of the vectors and the determinant of the transform are shown below. Coordinates of the initial vector (V1_rec) and and the co- and contra-variant basis vectors of the transformed coordinate system are given in rectangular cartesian coordinates; V_cnt* and V_cov* are vectors formed by the product of the co- and contra-variant components of the given vector and the corresponding contra- and co-variant basis vectors.</p>
+        <table id="trTable">
+        </table>
+        
+        <p>Or enter a new vector: </p>
+        <table id="vecTable">
+        </table>    
 
-    <p id="test">
-    </p>
+        <p> Clicking "Update diagrams" will transform the coordinate bases (blue: contravariant; green: covariant) based on the matrix in the upper table and/or change the vector to the vector in the lower table. Co- and contra-variant components of the vector are shown in dotted lines. <br><br> A list of the components of the vectors and the determinant of the transform are shown below. Coordinates of the initial vector (V1_rec) and and the co- and contra-variant basis vectors of the transformed coordinate system are given in rectangular cartesian coordinates; V_cnt* and V_cov* are vectors formed by the product of the co- and contra-variant components of the given vector and the corresponding contra- and co-variant basis vectors.</p>
 
-</div>
+        <p id="test">
+        </p>
+
+    </div>
 
     <script>
-    try {
+    
         // Create table for entering values of coordinate transformation.
         var trTable = new InputTable([ [1,0,0], [0,1,0], [0,0,1] ], "trTable");
         // Create table for changing vector.
@@ -41,10 +41,8 @@
         // Generate plot.
         var VP = new VectorPlot("vectorPlotSVG", {V1: randV},
                                 trTable.readInputs());
-    } catch (err) {
-        alert(err);
-    }
 
+        // Update vector & transformation
         function myfun() {
             try {
                 
@@ -132,8 +130,7 @@
 
             /*
             * Read values from an array of DOM input fields.
-            * @param {array} inputArray Array of input DOM objects
-            * @return {array} Values from input elements in array
+            * @return {array} Values from input elements in array (ASSUMES NUMBERS)
             */
             this.readInputs = function () {
                 var outs = [];
@@ -148,34 +145,45 @@
             }
         }
 
-    function VectorPlot(svgID, Vs, Tr) {
-        this.coords = new CoordinateGroup(Tr);
-        this.panels = [new Panel(svgID, "L", 2.5, 0), new Panel(svgID, "R", 2.5, 0)];
-
-        this.update = function (newVs, newTr) {
-            var k, vec;
-            this.coords.updateBasis(newTr);
-            for (vec in newVs) {
-                this.coords.newVector(vec, newVs[vec]);
+        // Generate SVG system elements
+        function VectorPlot(svgID, Vs, Tr) {
+            // Sets coordinate system based on matrix Tr
+            this.coords = new CoordinateGroup(Tr);
+            // Generate panels of SVG
+            this.panels = [new Panel(svgID, "L", 2.5, 0),
+                new Panel(svgID, "R", 2.5, 0)];
+            // Updates transformation, and plots lines
+            this.update = function (newVs, newTr) {
+                var k, vec;
+                this.coords.updateBasis(newTr);
+                for (vec in newVs) {
+                    this.coords.newVector(vec, newVs[vec]);
+                }
+                for (k=0; k<this.panels.length; k++) {
+                    this.panels[k].updateLines(this.coords.elements);
+                }
             }
-            for (k=0; k<this.panels.length; k++) {
-                this.panels[k].updateLines(this.coords.elements);
+            this.update(Vs, Tr);
+            // Sets images rotating
+            this.orbit = function(alpha) {
+                for (k=0; k<this.panels.length; k++) {
+                    this.panels[k].orbitView(alpha);
+                    this.panels[k].updateLines(this.coords.elements);
+                }
             }
         }
-        this.update(Vs, Tr);
-
-        this.orbit = function(alpha) {
-            for (k=0; k<this.panels.length; k++) {
-                this.panels[k].orbitView(alpha);
-                this.panels[k].updateLines(this.coords.elements);
-            }
-        }
-    }
 
 
-/* Panel object: should contain lines for each panel, plus information about 
-xy-center and viewing orientation. Included option for having just one panel.
-*/
+    /** Panel object: contains lines for each panel, plus information about 
+     * xy-center and viewing orientation. Included option for having just one 
+     * panel.
+     * @param {string} svgID ID of HTML element for plot (as SVG)
+     * @param {string} position 'L', 'R', or 'M' for left, right, or middle of
+     *           svg element
+     * @param {number} theta Angle (degrees) btwn normal and viewing plane
+                 for stereo pair
+     * @param {number} alpha Rotation angle (degrees) 
+    */
     function Panel(svgID, position, theta, alpha) {
         var that = this;
         // Get DOM object for SVG
@@ -193,6 +201,7 @@ xy-center and viewing orientation. Included option for having just one panel.
             this.theta = tht; // Angle between plane of view and normal in stereo pair
             this.alpha = alp; // Rotation increment
 
+            // Set origin and viewing angle depending on position string
             if (pos === "L") {
                 // xy center of panel
                 this.xy0 = [0.5*xmid, ymid];
@@ -203,7 +212,7 @@ xy-center and viewing orientation. Included option for having just one panel.
                 angle = alp-tht;
             } else if (pos === "M") {
                 this.xy0 = [xmid, ymid];
-                angle=alp+tht;
+                angle=tht;
             } else {
                 throw "position for panels should be 'L', 'R', or 'M'";
             }
@@ -223,6 +232,7 @@ xy-center and viewing orientation. Included option for having just one panel.
             this.updateView(this.position, this.theta, beta+this.alpha);
         }
 
+        // Generate and plot lines;
         this.updateLines = function (vecs) {
             var item;
             for (item in vecs) {
@@ -233,6 +243,7 @@ xy-center and viewing orientation. Included option for having just one panel.
 
         /**
         * Add line element to svg object and associate with linegroup object
+        * Takes variable 'that' from parent object on creation.
         * @param {string} vecName Name of vector associated with line.
         **/
         function newLine (vecName) {
@@ -246,6 +257,7 @@ xy-center and viewing orientation. Included option for having just one panel.
 
         /**
         * Remove line element from svg object and associated linegroup object
+        * Takes variable 'that' from parent object on creation.
         * @param {string} vecName Name of vector associated with line.
         **/
         function removeLine (vecName) {
@@ -254,15 +266,12 @@ xy-center and viewing orientation. Included option for having just one panel.
             };
         };
 
-        /** Change attributes of a line element to show vec projection on p1-p2
-        *  plane.
+        /** 
+        * Change attributes of a line element to show vector projection on
+        * p1-p2 plane.
+        * Takes variable 'that' from parent object on creation.
         * @param {object} li Line element to change
-        * @param {array} vec Vector to plot: numeric 1D array with length 3
-        * @param {array} p1 Basis vector for plane: numeric 1D array, length 3
-        * @param {array} p2 Basis vector for plane: numeric 1D array, length 3
-        * @param {array} xy0 Two element array: x-y coordinates of origin.
-        * @param {number} scale Scaling for vector
-        * @param {string} style String to give vector styling
+        * @param {object} coordObj  Object describing coordinate system
         **/
         function plotVec(li, coordObj) {
             var xyStart = projOnPlane(coordObj.start, that.plane);
@@ -280,19 +289,22 @@ xy-center and viewing orientation. Included option for having just one panel.
 
         /**
         * Find projection of vector vec onto plane defined by p1 & p2 (p1 and p2 
-        * are orthogonal unit basis vectors of plane)
-        * unit vectors, result is 
-        * @param {array} vec Vector (1d array) whose projection is sought 
-        * @param {array} p1 Unit vector in plane
-        * @param {array} p2 Unit vector in plane orthogonal to p2
-        * @return {array} Projection of 'vec' onto plane defined by 'normal'
+        * are orthogonal unit basis vectors of plane).
+        * @param {array} xyz Coordinates of endpoint of line
+        * @param {array} plane Define two orthogonal unit vectors within plane.
+        * @param {number} tol Defines tolerance for condition that vectors 
+        *       defining plane are orthogonal unit vectors
+        * @return {array} Projection of 'vec' onto plane
         **/
         function projOnPlane(xyz, plane, tol) {
             var tol = (typeof tol !== "undefined")?tol:0.001
             try {
-                if(Math.abs(numeric.norm2(plane[0]) - 1) > tol) throw "p1 is not a unit vector";
-                if(Math.abs(numeric.norm2(plane[1]) - 1) > tol) throw "p2 is not a unit vector";
-                if(Math.abs(numeric.dot(plane[0], plane[1])) > tol) throw "p1 and p2 are not orthogonal";
+                if(Math.abs(numeric.norm2(plane[0]) - 1) > tol
+                    ) throw "p1 is not a unit vector";
+                if(Math.abs(numeric.norm2(plane[1]) - 1) > tol
+                    ) throw "p2 is not a unit vector";
+                if(Math.abs(numeric.dot(plane[0], plane[1])) > tol
+                    ) throw "p1 and p2 are not orthogonal";
             } catch(err) {
                 alert("projOnPlane: " + err + ". Values may not be as expected");
             } finally {
@@ -303,7 +315,10 @@ xy-center and viewing orientation. Included option for having just one panel.
     }
 
         /**
-         * @param {Object} TrObject Transform object. 
+         * Define a group of coordinates for vectors, bases, and components
+         * with given styles.
+         * @param {array} TrArray Coordinate transform: array of 3 numeric
+         *      arrays of length 3
         **/
         function CoordinateGroup(TrArray) {
             var that=this;
@@ -344,6 +359,8 @@ xy-center and viewing orientation. Included option for having just one panel.
             /**
             * Add a new vector and associated covariant and contravariant
             * component 'vectors' 
+            * Depends on TrObject from parent function's namespace.
+            * @param {string} name Name of vector
             * @param {array} xyz Length 3 numeric array. 
             **/
             this.newVector = function (name, xyz) {
@@ -351,10 +368,14 @@ xy-center and viewing orientation. Included option for having just one panel.
                 var xyz0cnt = origin;
                 var xyz0cov = origin;
                 var xyzfcnt, xyzfcov;
+                // Calculate covariant and contravariant components of xyz
                 var compVecs = TrObject.compTuples(xyz);
-            
+
+                // Add coordinates for xyz vector
                 newElement(name + "_rec", origin, xyz, "Vrec", this);
 
+                // Add coordinates for each component, updating starting point
+                // so lines corresponding to coordinates sit head to tail. 
                 for (k = 0; k < 3; k++) {
                     xyzfcnt = numeric.add(xyz0cnt,
                                           compVecs["contravariant"][k]);
@@ -386,6 +407,11 @@ xy-center and viewing orientation. Included option for having just one panel.
             }
         }
 
+        /**
+         * Create object with information/functions of transformation based on
+         * matrix.
+         * @param {array} Tr Array of 3 numeric arrays of length 3.
+        **/
         function Transform(Tr) {
             var that = this;
 
@@ -394,7 +420,9 @@ xy-center and viewing orientation. Included option for having just one panel.
                 this.Tr = (typeof TrNew !== 'undefined')?
                             TrNew:[[1,0,0],[0,1,0],[0,0,1]];
                 this.invTr = numeric.inv(this.Tr);
+                // Calculate covariant basis
                 this.covBasis = numeric.transpose(this.invTr);
+                // Contravariant basis is just Tr.
                 this.cntBasis = this.Tr;
             };
             this.update(Tr);

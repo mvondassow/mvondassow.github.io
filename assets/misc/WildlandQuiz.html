@@ -3,6 +3,7 @@
   <meta charset="utf-8">
 </head>
 <body>
+    <noscript style="color:red">Javascript appears to be disabled on your browser. This page requires javascript.</noscript>
     <div style="width:90%; word-wrap:break-word;">
         <p>
         Click or select a category to randomly generate a fill-in-the-blank question.
@@ -89,6 +90,8 @@ function QuizGenerator (sentences, elementId, difficulty) {
         return myArray;
     }
 
+    // Remove HTML DOM elements from previous question; append new ones and a 
+    // fill-in-blanks question.
     this.createQuestion = function() {
         var item = Math.floor(Math.random()*this.sentenceArrays.length);
         while (this.element.hasChildNodes()) {
@@ -96,16 +99,21 @@ function QuizGenerator (sentences, elementId, difficulty) {
         }
         var newEl = this.element.appendChild(document.createElement("p"));
         fillInBlanks(this.sentenceArrays[item], this.wordBank, 
-            this.wordArray, this.punctuation, this.difficulty, 
+            this.wordArray, this.difficulty, 
             this.nChoices, newEl);
     }
 
     /**
+     * Generate group of HTML DOM elements for multiple choice questions.
+     * @param {array} arrayOfStrings Sentence broken into substrings
+     * @param {object} wb wordbank object (keys: words, values: position in
+     *       wbArray)
+     * @param {array} wbArray Array of strings, one for each word in wb
      * @param (number) difficulty Fraction of words to convert to blanks
      *  1 >= difficulty >= 0;
      * @param (number) nChoices Number of choices per blank to give
     **/
-    function fillInBlanks (arrayOfStrings, wb, wbArray, puncList, difficulty,
+    function fillInBlanks (arrayOfStrings, wb, wbArray, difficulty,
             nChoices, el) {
         var original = arrayOfStrings;
         var k;
@@ -120,7 +128,7 @@ function QuizGenerator (sentences, elementId, difficulty) {
         var blankInds = randomSubset(wordInds, 
                 Math.max(Math.floor(difficulty*wordInds.length),1),
                 "descending");
-        // Create element for question and append;
+        // Create & append element for multiple choice blank or displayed word
         for (k = 0; k<kmax; k++) {
             current = original[k];
             if (k === blankInds[blankInds.length - 1]) {
@@ -141,7 +149,7 @@ function QuizGenerator (sentences, elementId, difficulty) {
         /**
         * Create a multiple choice selection question.
         * event listener updates score and style if choose correct/false answer
-        * @param () correctAnswer
+        * @param (string/number) correctAnswer
         * @param (array) arr Selection choices
         * @param (DOM object) el Parent DOM object.
         **/
@@ -167,6 +175,8 @@ function QuizGenerator (sentences, elementId, difficulty) {
             q.wasCorrect = false; // Track of whether previous answer was right
             q.style.backgroundColor = "#ddddff";
 
+            // Add listener to update style and score when selection changes.
+            // NOTE HAS CODE FOR SCORE, BUT NOT CURRENTLY USED
             q.addEventListener("change", function () {
                 // parent element's score keeps track of currect/false answers
                 if(typeof el.score === 'undefined') {
@@ -339,27 +349,36 @@ function QuizGenerator (sentences, elementId, difficulty) {
         }
 }
 
+// catSelector: category selection input box
 var catSelector = document.getElementById('catSelector');
+// variable to store category options
 var catChoice;
+// variable to store quiz object
 var quiz;
-
+// Generate elements in selection input field for categories
 for (var key in quizTexts) {
     catChoice = document.createElement('option');
     catChoice.value = key;
     catChoice.innerHTML = key;
     catSelector.appendChild(catChoice);
 }
+// Check whether category choice changes and run function (myCat) to generate 
+// new quiz question if it does.
 catSelector.addEventListener("change", myCat)
-
 function myCat() {
+    // Check user-entered difficulty
     var difficulty = Number(document.getElementById("difficulty").value);
+    // Create new quiz object, parsing texts (hard coded 'quizEl' is element 
+    // ID for displaying question.
     quiz = new QuizGenerator(quizTexts[catSelector.value],
             "quizEl",  difficulty);
+    // Generate and display a question.
     quiz.createQuestion();
 }
-
+// Generate quiz/question upon page loading
 myCat();
 
+// Generate new question when user clicks newQuestion button.
 document.getElementById('newQuestion').addEventListener("click",
     function() {
         var difficulty = Number(document.getElementById("difficulty").value);
