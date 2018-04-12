@@ -4,7 +4,7 @@
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">  
 </head>
-<body style="font-size:1em">
+<body style="font-size:1.3rem">
     <noscript style="color:red">Javascript appears to be disabled on your browser. This page requires javascript.</noscript>
     <div style="width:90%; word-wrap:break-word;">
         <p>
@@ -15,12 +15,18 @@
         <select id = "catSelector"></select>
         <button id = "newQuestion">New Question</button>
         <br/>
-        <input id = "difficulty" type="number" min=0 max=1 value=0.4 
-            step="0.1" style="width:4em;">Difficulty (0 to 1)
-        </input>
+        <p>Difficulty: 
+            <select id = "difficulty">
+                <option value="0.2">0.2</option>
+                <option value="0.4" selected="selected">0.4</option>
+                <option value="0.6">0.6</option>
+                <option value="0.8">0.8</option>
+                <option value="1.0">1.0</option>
+            </select>
+        </p>
     </div>
     <div id = "quizEl"></div>
-    <div style="position:relative;min-height:10em;"><p style="position:absolute;bottom:0;font-size:0.8em">*Sources for 'Watchouts', 'Fire Orders', etc: <br/><i>Incident Response Pocket Guide</i>. National Wildfire Coordinating Group,  2014 <br/>Teie, William C. <i>Firefighter's Handbook on Wildland Firefighting: Strategy, Tactics, & Safety, 3rd Ed.</i> Deer Valley Press, 2005 </p></div>
+    <div style="position:relative;min-height:10em;"><p style="position:absolute;bottom:0;font-size:1rem">*Sources for 'Watchouts', 'Fire Orders', etc: <br/><i>Incident Response Pocket Guide</i>. National Wildfire Coordinating Group,  2014 <br/>Teie, William C. <i>Firefighter's Handbook on Wildland Firefighting: Strategy, Tactics, & Safety, 3rd Ed.</i> Deer Valley Press, 2005 </p></div>
 <script>
     var quizTexts = {"Watch outs": ["Fire not scouted and sized-up", "In country not seen in daylight", "Safety zones and escape routes not identified", "Unfamiliar with weather and local factors influencing fire behavior", "Uninformed about strategy, tactics, and hazards", "Instructions and assignments not clear", "No communications link with crew members or supervisor", "Constructing line without a safe anchor point", "Building fireline downhill with fire below", "Attempting frontal assault on fire", "Unburned fuel between you and the fire", "Cannot see main fire; not in contact with someone who can", "On a hillside where rolling material can ignite fuel below", "Weather becoming hotter and drier", "Wind increases and/or changes direction", "Getting frequent spot fires across fireline", "Terrain and fuels make escape to safety zones difficult", "Taking a nap near the fireline"], "Fire orders": ["Keep informed on fire weather conditions and forecasts.", "Know what your fire is doing at all times.", "Base all actions on current and expected behavior of the fire.", "Identify escape routes and safety zones and make them known.", "Post lookouts when there is a possible danger.", "Be alert. Keep calm. Think clearly. Act decisively.", "Maintain prompt communications with your forces, your supervisor, and adjoining forces.", "Give clear instructions and be sure they are understood.", "Maintain control of your forces at all times.", "Fight fire aggressively, having provided for safety first."], "LaCES": ["Lookout, awareness, Communication, Escape Routes, Safety Zones"], "Common denominators on fatal fires": ["Most of the incidents occurred on relatively small fires or isolated sectors of large fires. Most of the fires were innocent in appearance prior to the flareup or blowups. In some cases tragedies occurred in the mop-up stage.", "Flareups generally occurred in deceptively light fuels.", "Accidents occurred in chimneys, gullies, or on steep slopes.", "There is a shift in wind direction or in wind speed.", "Suppression tools such as helicopters or airtankers can adversely modify fire behavior. Winds created by wing vortex can change the wind conditions on the ground."], "Reasons for common denominators": ["Firefighters underestimated the potential. Firefighters did not recognize subtle changes in weather conditions or fire behavior.", "Firefighters underestimated the extreme rates of spread and heat possible in light fuels.", "Fires and 'super-heated' gas move up steep slopes and canyons with surprising speed. ", "There have been times that a wind event has been predicted and the impact of such an event not appreciated. There are more times that an unpredicted and unexpected shift in wind occurs. This may be associated with the passage of a cold front.", "A low pass by a helicopter or airtanker can cause the fire to flare up or spot across the fireline."]};
 
