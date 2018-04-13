@@ -20,26 +20,40 @@
         <button type="button" id="myBtn" onclick="myfun()">Update diagrams</button>
         
         <p style="clear:left">Or enter a new vector: </p>
-        <table id="vecTable">
-        </table>    
+
+        <table id="vecTable"></table>    
 
         <p> Clicking "Update diagrams" will transform the coordinate bases (blue: contravariant; green: covariant) based on the matrix in the upper table and/or change the vector to the vector in the lower table. Co- and contra-variant components of the vector are shown in dotted lines. <br><br> A list of the components of the vectors and the determinant of the transform are shown below. Coordinates of the initial vector (V1_rec) and and the co- and contra-variant basis vectors of the transformed coordinate system are given in rectangular cartesian coordinates; V_cnt* and V_cov* are vectors formed by the product of the co- and contra-variant components of the given vector and the corresponding contra- and co-variant basis vectors.</p>
 
-        <p id="test">
-        </p>
+        <p id="test"></p>
 
     </div>
 
+    <div>
+        <br/><br/>
+        <p style="font-size:1rem;border-top:1px solid #8c8b8b;width:100%">
+        HTML and Javascript code for coordinate transform visualization by: <a href="/">M. von Dassow</a>, 2018
+        </p>
+    </div>
+
     <script>
-    
+        /**
+        * Author: Michelangelo von Dassow; Year: 2018
+        */
+
         // Create table for entering values of coordinate transformation.
         var trTable = new InputTable([ [1,0,0], [0,1,0], [0,0,1] ], "trTable");
         // Create table for changing vector.
         var vecTable = new InputTable(randR3(), "vecTable");
         // Get vector from vecTable
         var randV = vecTable.readInputs().map(function (x) {return x[0]})
-        // Generate plot.
-        var VP = new VectorPlot("vectorPlotSVG", {V1: randV},
+        var VP; // Variable for plot element, set below
+        // Set svg size to view width.
+        document.getElementById("vectorPlotSVG").setAttribute("width", 
+            Math.min(document.body.clientWidth, 600));
+
+        // Generate plot
+        VP = new VectorPlot("vectorPlotSVG", {V1: randV},
                                 trTable.readInputs());
 
         // Update vector & transformation

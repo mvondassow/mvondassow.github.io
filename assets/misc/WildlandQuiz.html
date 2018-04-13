@@ -26,9 +26,26 @@
         </p>
     </div>
     <div id = "quizEl"></div>
-    <div style="position:relative;min-height:10em;"><p style="position:absolute;bottom:0;font-size:1rem">*Sources for 'Watchouts', 'Fire Orders', etc: <br/><i>Incident Response Pocket Guide</i>. National Wildfire Coordinating Group,  2014 <br/>Teie, William C. <i>Firefighter's Handbook on Wildland Firefighting: Strategy, Tactics, & Safety, 3rd Ed.</i> Deer Valley Press, 2005 </p></div>
+    <div style="min-height:5rem;"></div>
+    <p style="font-size:1rem">*Sources for 'Watchouts', 'Fire Orders', etc: <br/><i>Incident Response Pocket Guide</i>. National Wildfire Coordinating Group,  2014 <br/>Teie, William C. <i>Firefighter's Handbook on Wildland Firefighting: Strategy, Tactics, & Safety, 3rd Ed.</i> Deer Valley Press, 2005 <br/><br/><br/></p>
+     <p style="font-size:1rem;border-top:1px solid #8c8b8b;width:100%">HTML and Javascript code for quiz generator by: <a href="/">M. von Dassow</a>, 2018</p>
+
 <script>
+/**
+* Author: Michelangelo von Dassow; Year: 2018
+*
+* Script generates random fill-in-blank questions from given texts.
+* Provides semi-random questions (given in sets where they do not repeat the same
+* text within a set to insure texts are not over- or under-represented within a
+* category.
+* 
+* Limitations: Only handles .,: and; as punctuation; does not handle punctuation 
+* where mark is between spaces, appears at the beginning of the word, or is
+* adjacent to another punctuation mark.
+**/
+
     var quizTexts = {"Watch outs": ["Fire not scouted and sized-up", "In country not seen in daylight", "Safety zones and escape routes not identified", "Unfamiliar with weather and local factors influencing fire behavior", "Uninformed about strategy, tactics, and hazards", "Instructions and assignments not clear", "No communications link with crew members or supervisor", "Constructing line without a safe anchor point", "Building fireline downhill with fire below", "Attempting frontal assault on fire", "Unburned fuel between you and the fire", "Cannot see main fire; not in contact with someone who can", "On a hillside where rolling material can ignite fuel below", "Weather becoming hotter and drier", "Wind increases and/or changes direction", "Getting frequent spot fires across fireline", "Terrain and fuels make escape to safety zones difficult", "Taking a nap near the fireline"], "Fire orders": ["Keep informed on fire weather conditions and forecasts.", "Know what your fire is doing at all times.", "Base all actions on current and expected behavior of the fire.", "Identify escape routes and safety zones and make them known.", "Post lookouts when there is a possible danger.", "Be alert. Keep calm. Think clearly. Act decisively.", "Maintain prompt communications with your forces, your supervisor, and adjoining forces.", "Give clear instructions and be sure they are understood.", "Maintain control of your forces at all times.", "Fight fire aggressively, having provided for safety first."], "LaCES": ["Lookout, awareness, Communication, Escape Routes, Safety Zones"], "Common denominators on fatal fires": ["Most of the incidents occurred on relatively small fires or isolated sectors of large fires. Most of the fires were innocent in appearance prior to the flareup or blowups. In some cases tragedies occurred in the mop-up stage.", "Flareups generally occurred in deceptively light fuels.", "Accidents occurred in chimneys, gullies, or on steep slopes.", "There is a shift in wind direction or in wind speed.", "Suppression tools such as helicopters or airtankers can adversely modify fire behavior. Winds created by wing vortex can change the wind conditions on the ground."], "Reasons for common denominators": ["Firefighters underestimated the potential. Firefighters did not recognize subtle changes in weather conditions or fire behavior.", "Firefighters underestimated the extreme rates of spread and heat possible in light fuels.", "Fires and 'super-heated' gas move up steep slopes and canyons with surprising speed. ", "There have been times that a wind event has been predicted and the impact of such an event not appreciated. There are more times that an unpredicted and unexpected shift in wind occurs. This may be associated with the passage of a cold front.", "A low pass by a helicopter or airtanker can cause the fire to flare up or spot across the fireline."]};
+//, "test":["a a a","b b b","c c c","d d e ."]};
 
 /**
 * @param (array) sentences Optional parameter: array of strings.
@@ -42,6 +59,8 @@ function QuizGenerator (sentences, elementId, difficulty) {
     this.difficulty = difficulty;
     this.nChoices = 5;
     this.element = document.getElementById(elementId);
+
+    this.questionOrder = []; // Use to reduce repetition
 
     /**
      * Takes an array of English sentence with standard punctuation and breaks
@@ -83,19 +102,25 @@ function QuizGenerator (sentences, elementId, difficulty) {
         for(k=0; k<kmax; k++) {
             l = spaceSplit[k].length;
             punc = puncList.test(spaceSplit[k].charAt(l-1));
-            if (punc) {
-                newWord = spaceSplit[k].slice(0, l-1);
-                myArray.push(newWord);
-                myArray.push(spaceSplit[k].slice(l-1));
-            } else {
-                newWord = spaceSplit[k];
-                myArray.push(newWord);
-            };
-            newWord = newWord.toLowerCase();
-            if (!wb.hasOwnProperty(newWord)) {
-                wbArray.push(newWord);
-                wb[newWord.toLowerCase()] = wbArray.length-1;
-            }
+            /* First if statement tries to deal with errors or cases where punctuation is separated from previous word by a space... cut since can't yet account for cases where a) punctuation is surrounded by spaces (a dash) or b) is at the beginning of a word (an opening parentheses; quatation mark) or c) special characters/groupings (quotation marks; multiple punctuation marks (e.g. ...).
+
+            if (punc && (spaceSplit[k].length==1)) {
+                myArray.push(spaceSplit[k]);
+            } else { */
+                if (punc) {
+                    newWord = spaceSplit[k].slice(0, l-1);
+                    myArray.push(newWord);
+                    myArray.push(spaceSplit[k].slice(l-1));
+                } else {
+                    newWord = spaceSplit[k];
+                    myArray.push(newWord);
+                };
+                newWord = newWord.toLowerCase();
+                if (!wb.hasOwnProperty(newWord)) {
+                    wbArray.push(newWord);
+                    wb[newWord.toLowerCase()] = wbArray.length-1;
+                }
+            //}
         };
         return myArray;
     }
@@ -103,10 +128,20 @@ function QuizGenerator (sentences, elementId, difficulty) {
     // Remove HTML DOM elements from previous question; append new ones and a 
     // fill-in-blanks question.
     this.createQuestion = function() {
-        var item = Math.floor(Math.random()*this.sentenceArrays.length);
+        var item;
+        // Force using a new sentence for each question in a set
+        if (this.questionOrder.length === 0) {
+            this.questionOrder = combNM(
+                this.sentenceArrays.length, this.sentenceArrays.length);
+        }
+        item = this.questionOrder.pop();
+
+        //Remove old question
         while (this.element.hasChildNodes()) {
             this.element.removeChild(this.element.lastChild);
         }
+
+        // Create new question
         var newEl = this.element.appendChild(document.createElement("p"));
         fillInBlanks(this.sentenceArrays[item], this.wordBank, 
             this.wordArray, this.difficulty, 
@@ -342,21 +377,6 @@ function QuizGenerator (sentences, elementId, difficulty) {
           }
           return out;
         }
-
-
-        /**
-        * Randomize array element order in-place (Durstenfeld shuffle algorithm)
-        * Code from: Laurens Holst, https://stackoverflow.com/questions/2450954/
-        */
-        function shuffleArray(origArray) {
-            var myArray = origArray;
-            for (var i = myArray.length - 1; i > 0; i--) {
-                var j = Math.floor(Math.random() * (i + 1));
-                var temp = myArray[i];
-            }
-            myArray[i] = myArray[j];
-            myArray[j] = temp;
-        }
 }
 
 // catSelector: category selection input box
@@ -372,6 +392,7 @@ for (var key in quizTexts) {
     catChoice.innerHTML = key;
     catSelector.appendChild(catChoice);
 }
+
 // Check whether category choice changes and run function (myCat) to generate 
 // new quiz question if it does.
 catSelector.addEventListener("change", myCat)
@@ -393,8 +414,9 @@ document.getElementById('newQuestion').addEventListener("click",
     function() {
         var difficulty = Number(document.getElementById("difficulty").value);
         quiz.difficulty = difficulty;
-        quiz.createQuestion()}
-    );
+        quiz.createQuestion()
+    }
+);
 
 </script>
 </body>

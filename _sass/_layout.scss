@@ -23,7 +23,7 @@ h1 {
 	}
 }
 h2 {
-	font-size: 2em;
+	font-size: 1.4em;
 }
 a,
 a:visited {
@@ -150,9 +150,38 @@ footer {
 	text-align: center;
 	padding: 40px;
 }
+@media (max-width: 350px) {
+    header {
+        font-size: 0.5rem;
+    }
+    h2 {
+	    font-size: 1em;
+    }
+    h3 {
+	    font-size: 1em;
+    }
+    aside {
+        nav {
+            ul {
+                li {
+                    a {
+                        padding: 4px;
+                    }
+                }
+            }
+        }
+    }
+}
 @media (min-width: 700px) {
     header {
-        font-size: 1.1rem;
-        line-height: 1.1rem;
+        font-size: 0.7em;
+    }
+    h2 {
+	    font-size: 1.75em;
+    }
+}
+@media (min-width: 950px) {
+    header {
+        font-size: 1em;
     }
 }
