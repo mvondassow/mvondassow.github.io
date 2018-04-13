@@ -86,7 +86,7 @@
         setInterval(
             function () {
                 var degPer = Number(orbitSpeed.value)*14.4;
-                if ((!Number.isNaN(degPer)) && (degPer !== 0)) {
+                if ((!isNaN(degPer)) && (degPer !== 0)) {
                     VP.orbit(degPer);
                 }
                 }, 40);
