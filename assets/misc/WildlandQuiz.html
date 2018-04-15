@@ -10,7 +10,7 @@
         <p>
         Click or select a category to randomly generate a fill-in-the-blank question.
         <br/>
-        Categories are from wildland firefighting*. Selection boxes turn green for correct choices, and turn red otherwise.
+        Categories are from wildland firefighting*. Selection boxes turn green (dark background) for correct choices, and turn red (light background) otherwise.
         </p>
         <select id = "catSelector"></select>
         <button id = "newQuestion">New Question</button>
@@ -231,15 +231,19 @@ function QuizGenerator (sentences, elementId, difficulty) {
                 // increase score; if changed to incorrect, decrease score;
                 // keep track of whether previous answer was correct.
                 if (q.value === q.correctAnswer.toString()) {
-                    q.style.backgroundColor = "#99ff99";
+                    q.setAttribute("style", 
+                        "background-color:#006600 !important;" + 
+                        "color:#bbffbb !important;");
                     if (!q.wasCorrect) {
-                        el.score += 1
+                        el.score += 1;
                     }
                     q.wasCorrect = true;
                 } else {
-                    q.style.backgroundColor = "#ff9999";
+                    q.setAttribute("style", 
+                        "background-color:#ff9999 !important;" + 
+                        "color:#aa0000 !important;");
                     if (q.wasCorrect) {
-                        el.score -= 1
+                        el.score -= 1;
                     }
                     q.wasCorrect = false;
                 }
