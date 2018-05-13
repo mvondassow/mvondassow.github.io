@@ -26,11 +26,12 @@ github_username:  mvondassow
 sass:
   sass_dir: _sass
 include: ['_pages']
+exclude: ['blog', '_posts']
 collections: 
   projects:
     output: true
     permalink: /research/:path/
-  tools:
+  products:
     output: true
     permalink: /tools/:path/
 markdown: kramdown

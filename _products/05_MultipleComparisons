@@ -1,0 +1,6 @@
+---
+layout: page
+title:  "Multiple comparisons with random factors"
+---
+
+Matlab 2009a did not implement multiple comparisons for models with a mix of random factors and fixed factors (e.g. in an experiment testing whether there are treatment effects run on several batches, in which there may be random batch-to-batch variation). [This code](https://github.com/mvondassow/ZarsMultcompare/blob/master/multcompareRandom.m) implements Tukey's method (following Zar 1999, Biostatistical Analysis) for multiple comparisons. Other files in this repo run simulations to test the method for different experimental designs.
