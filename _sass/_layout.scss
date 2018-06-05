@@ -40,20 +40,13 @@ header {
 	padding: 0px 15px;
 	text-align: center;
 	margin: 50px 0 0;
-	height: 50vh;
+	height: 20vh;
 	display: flex;
 	justify-content: center;
 	align-items: center;
- /*     background-image: url($header-image);
-  background-repeat: no-repeat;
-    background-position: center center
-/*    background-position: 0vh -7vh;*/
+    background-image: url($header-image);
+    background-position: 0vh -7vh;
     font-size: 0.6rem;
-    background: url($header-image) no-repeat center center;
-    -webkit-background-size: cover; /* For WebKit*/
-    -moz-background-size: cover;    /* Mozilla*/
-    -o-background-size: cover;      /* Opera*/
-    background-size: cover;         /* Generic*/
 }
 main {
 	padding: 0 15px;
