@@ -1,34 +1,66 @@
-<script>
-var myInterval = setInterval(randomQnan, 1000);
+<!-- Navbar (sit on top) -->
+<div class="w3-bar w3-white w3-card" id="myNavbar">
+    <!-- home link -->
+    <a href="/" class="w3-bar-item w3-button w3-wide">NaN Data</a>
 
-function randomQnan() {
-    var a = document.getElementById("qnan")
-    var x = Math.random().toString(2).substr(2,32).split("").fill("1", 1,10)
-    kmax=x.length
-    for (k=kmax-4; k>=4; k-=4) {
-    	x.splice(k,0," ")
-    }
-    a.innerHTML = x.join("")
+	<!-- Right-sided navbar links -->
+    <div class="w3-right w3-hide-small">
+	    {% for page in site.pages %} {% if page.title %}
+			<a class="w3-bar-item w3-button" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
+			{% endif %} {% endfor %}
+        <a class="w3-bar-item w3-button" href="{{ "/research" | prepend: site.baseurl }}">Research</a>
+	    <!--<a href="{{ "/blog" | prepend: site.baseurl }}">Blog</a> -->    
+    <!-- Hide right-floated links on small screens and replace them with a menu icon -->
+    </div>
 
-}
+    <!-- Hide right-floated links on small screens and replace them with a menu icon -->
+    <a href="javascript:void(0)" class="w3-bar-item w3-button w3-right w3-hide-large w3-hide-medium" onclick="w3_open()">
+      <i class="fa fa-bars"></i>
+    </a>
+</div>
 
-randomQnan()
-</script>
+<!-- Sidebar on small screens when clicking the menu icon -->
+<nav class="w3-sidebar w3-bar-block w3-black w3-card w3-animate-left w3-hide-medium w3-hide-large" style="display:none" id="mySidebar">
+    <a href="javascript:void(0)" onclick="w3_close()" class="w3-bar-item w3-button w3-large w3-padding-16">Close &times;</a>
+    {% for page in site.pages %} {% if page.title %}
+        <a onclick="w3_close()" class="w3-bar-item w3-button" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a>
+    {% endif %} {% endfor %}
+        <a onclick="w3_close()" class="w3-bar-item w3-button" href="{{ "/research" | prepend: site.baseurl }}">Research</a>
+</nav>
 
-<aside>
-	<div class="container">
-		<nav>
-			<ul>
-				{% for page in site.pages %} {% if page.title %}
-				<li><a href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></li>
-				{% endif %} {% endfor %}
-                <li><a href="{{ "/research" | prepend: site.baseurl }}">Research</a></li>
-				<!--<li><a href="{{ "/blog" | prepend: site.baseurl }}">Blog</a></li> -->
-			</ul>
-		</nav>
-	</div>
-</aside>
-
-<header>
-	<h1><a id="qnan" href="/">0111 1111 1100 0000 0000 0000 0000 0110</a></h1>
+<!-- Header -->
+<header class="w3-container w3-padding w3-display-container w3-theme" id="myHeader" style="text-align:center;"> 
+  <!--  <div style="display:table; height:100%; width:100%;">
+      <div style="display:table-cell;vertical-align:middle;">
+        <div style="text-align:center;"> -->
+            <h1 class="headline">Data analysis · Visualization · Experimentation · Coding</h1>
+<!--
+        </div>
+      </div>
+    </div> -->
+<!--  <div class="w3-center" style="height:100%;">
+    <h4 class="m-center">Data analysis · Visualization · Experimentation · Coding</h4>
+  <h1 class="w3-xxxlarge w3-animate-bottom">BUILT WITH W3.CSS</h1>
+    <div class="w3-padding-32">
+      <button class="w3-btn w3-xlarge w3-theme-dark w3-hover-teal" onclick="document.getElementById('id01').style.display='block'" style="font-weight:900;">LEARN W3.CSS</button>
+    </div>
+ </div>-->
 </header>
+
+<script>
+    // Toggle between showing and hiding the sidebar when clicking the menu icon
+    var mySidebar = document.getElementById("mySidebar");
+
+    function w3_open() {
+        if (mySidebar.style.display === 'block') {
+            mySidebar.style.display = 'none';
+        } else {
+            mySidebar.style.display = 'block';
+        }
+    }
+
+    // Close the sidebar with the close button
+    function w3_close() {
+        mySidebar.style.display = "none";
+    }
+</script>

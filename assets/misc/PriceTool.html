@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+</head>
+<body style="font-size:1.3rem">
+    <noscript style="color:red">Javascript appears to be disabled on your browser. This page requires javascript.</noscript>
+
+<!-- 
+Steps:
+-1) Import chart.js plotting library
+0) Import JSON file (e.g. land: [100, 300], house: {manufactured: [100, 140], modular: [160, 260], stick-built: [200, 350]}, septic: [...; or initial-consult: [0, 0], base-price: [100, 250], )
+1) Create table with column0=selection fields (keys from JSON file), columns1 -
+     2: display low and high (vals from JSON file)
+2) Get selections and associated default values
+3) Calculate mean and variance for each item from log transformed values (given assumption that most prices will follow a distribution that is approximately log-normal).
+4) Calculate mean and variance of distribution of total: Mean of sums = sum of means; variance of sums = sum of variances
+5) Calculate lognormal parameters from linear scale mean and variance.
+6) Calculate values to display in histogram:
+    5.1: Divide range on linear scale: from 0 to exp(mean + 3 sd) in 10 steps
+    5.2: Calculate PDF at those points.
+
+Assume approximately log-normal distribution for prices (needs a right skewed distribution with x>0), with mean and variance calculated above.
+NOT EXACT: sum of log-normally distributed items will not be log-normally distributed (ln(A) + ln(B) = ln(A*B); however, should be close enough for purpose of ballpark estimates.
+
+7) Plot values of histogram as bar chart
+ -->
+    <!-- Table for selections -->
+    <table>
+        <thead style="font-weight:bold"><tr>
+            <td>Category</td>
+            <td>Option</td>
+            <td>Lowest</td>
+            <td>Highest</td>
+        </tr></thead>
+        <tbody  id='myTable'></tbody>
+    </table>
+
+    <button onclick = "myTestFun()">test</button>
+    <!-- <p id = 'test'>test text</p>  -->
+
+    <!-- Canvas for chart -->
+<div style="width:600px; height:200px;">
+    <canvas id="myChart" style="border:1px solid #000000;"></canvas>
+</div>
+
+    <script>
+        var myEsts = {
+            'House Type' : {
+                'Manufactured 3bd 2ba' : {
+                    low: 130, high: 170, distribution: 'lognorm'},
+                'Modular 3bd 2ba'  : {
+                    low: 160, high: 230, distribution: 'lognorm'},
+                'Stick 3bd 2ba': {
+                    low: 200, high: 300, distribution: 'lognorm'}
+                },
+            'Sewage' : {
+                'Septic 3bd 2ba': {low: 25, high: 40, distribution: 'lognorm'},
+                'Town hookup': {low: 25, high: 25, distribution: 'single'}
+                },
+            'Water' : { 
+                'Well' : {low: 25, high: 40, distribution: 'lognorm'},
+                'Town hookup' : {low: 25, high: 25, distribution: 'single'}
+                }
+            };
+
+        var myTestFun = (function() {
+            var eo = new Estimator(myEsts, 'myTable', 'myCanvas', 4);
+            var called = false;
+            var ctx = document.getElementById('myChart');
+            var k;
+            var kmax = 100; 
+            var xinc = 500/kmax;
+
+            var myScatter;
+
+            addDataSet = function() {
+                var points = [];
+                for (k=0; k<kmax; k++) {
+                    points.push({x: k*xinc, y: eo.params.calcPDF(k*xinc)});
+                }
+                
+                if (!called) {
+                    myScatter = new Chart(ctx, {
+                        type: 'scatter', 
+                        data: {
+                            datasets: [{data: points}]
+                        }});
+                } else {
+                    myScatter.data.datasets[0].data = points;
+                    myScatter.update();
+                }
+                
+                called = true;
+            }
+            
+            addDataSet();
+
+            return addDataSet;
+       })();
+
+        /**
+        *
+        *
+        * @param (object) infoObj highest key: category names; second level
+        *   key: options; values: 2-element numeric arrays (low and high value)
+        * @param (DOM object) tableID ID of table element in which to build
+        *   table
+        * @param (DOM object) canvasID ID of canvas element in which to build
+        *   graph
+        * @param (number) nSDs Number of standard deviations between low and
+        *   high value after transforming
+        **/
+        function Estimator(infoObj, tableID, canvasID, nSDs) {
+console.log(this);
+            /*
+            * params object holds mean and variance for distribution
+            * includes methods to calculate the pdf, to rezero the parameters,
+            * and to increment them given an object with appropriate key-value 
+            * pairs.
+            */
+            this.params = new Parameters(nSDs);
+            /*   graph
+            * @param (number) spread Number of standard deviations between
+            *    low and high value after transforming.
+            **/
+            function Parameters (spread) {
+                var that = this; 
+                this.mean = 0;
+                this.variance = 0;
+                this.calcPDF = (function () {
+                    var mean = that.mean;
+                    var variance = that.variance;
+                    var par = {};
+                
+                    // Calculate parameters of lognormal approximation if 
+                    function calcLognormParams(mn, v) {
+                        var par = {};
+                        par.sigmaSq = Math.log(1+v/(mn*mn));
+                        par.mu = Math.log(mn) - 0.5*par.sigmaSq;
+                        return par;
+                    }
+
+                    pdf = function (x) {
+                        var out = Number.NaN;
+                        // Check that par has been set, update private vars
+ 
+                        if ((!par) || 
+                            (mean!=that.mean) || 
+                            (variance!=that.variance)) {
+                           mean = that.mean;
+                           variance = that.variance;
+                           par = calcLognormParams(mean, variance)
+                        }
+                        if (x>0 && variance>0) {
+                            out = (1.0/(x*Math.pow(par.sigmaSq*2*Math.PI, 0.5))
+                                )*Math.exp(-Math.pow(Math.log(x)-par.mu, 2
+                                )/(2*par.sigmaSq));
+                        } else if ((variance == 0) && (x == mean)) {
+                            out = 1;
+                        } else if ((variance == 0) 
+                                    && !Number.isNaN(x)
+                                    && !Number.isNaN(mean)) {
+                            out = 0;
+                        } else if ((x == 0) 
+                                    && !Number.isNaN(variance)
+                                    && !Number.isNaN(mean)) {
+                            out = 0;
+                        }
+                        return out;
+                    };
+                    return pdf
+                })();
+                this.rezero = function () {this.mean = 0; this.variance = 0},
+                this.increment = function (obj) {
+                    var flow, fhigh, sigma, mu;
+                    if (hasProps(obj, ['low', 'high', 'distribution'])) {
+                        switch (obj['distribution']) {
+                            default : 
+                                alert('Unrecognized distribution');
+                                break;
+                            case 'lognorm' :
+                                /* calculations assume high and low vals are
+                                equidistant from mean, and a set number of sds
+                                apart in transformed scale.
+                                */
+                                flow = Math.log(obj.low);
+                                fhigh = Math.log(obj.high);
+                                mu = (flow + fhigh)/2;
+                                this.mean += Math.exp(mu);
+                                sigma = (fhigh-flow)/spread;
+                                this.variance += (Math.exp(2*mu+sigma*sigma)*
+                                    (Math.exp(sigma*sigma)-1));
+                                break;
+                            case 'single' :
+                                this.mean += obj.low;
+                                break;
+                        }
+                    } else {
+                        alert('Missing object properties');
+                    }
+                }
+                function hasProps (obj, arr) {
+                    var k;
+                    var kmax = arr.length;
+                    var out = true;
+                    for (k=0; k<kmax; k++) {
+                        if (!obj.hasOwnProperty(arr[k])) {
+                            out = false;
+                        }
+                    }
+                    return out;
+                }
+            };
+
+
+            /*
+            INITIALIZE array of row objects (rowObjs)
+            FOR key in infoObj
+                Generate a row object
+                Append row object to rowObjs
+            */
+            var tableObj = document.getElementById(tableID);
+            var tempRow;
+            var that = this;
+            this.rowObjs= [];
+            try {
+            for (key in infoObj) {
+                tempRow = new RowObj(key, infoObj[key], tableObj, that);
+                this.rowObjs.push(tempRow);
+            }
+            } catch(err) {alert(err)};
+
+            /**
+            * Create an object consisting of a row of DOM elements with name
+            * in first cell, selector in second cell, and low and high values
+            * for option chosen in 3rd and 4th cells.
+            * 
+            * @param (string) str Name of category
+            * @param (object) obj Keys: options for category; values: 
+            *    2-element arrays (low and high values for option).
+            * @param (DOM object) el Table element in which to insert rows.
+            * @param (object) parent Object for preserving parent context 
+            *   (from parent Estimator object) in call to newSelector.
+            **/
+            function RowObj(str, obj, el, parent) {
+                this.name = str;
+                this.row = el.insertRow();
+                var item;
+                var k;
+                for (k=0; k<4; k++) {
+                    item = this.row.insertCell(k);
+                    switch (k) {
+                        case 0 :
+                            //alert([item, str]);
+                            item.innerHTML = "<p>" + str + "</p>";
+                            break;
+                        case 1 :
+                            this.selector = newSelector(
+                                Object.keys(obj), item, parent);
+                            break;
+                        case 2 :
+                            this.lowElement = item;
+                            break;
+                        case 3 :
+                            this.highElement = item;
+                            break;
+                    }
+                }
+
+                // Read selectors and update elements of row.
+                this.readAndUpdate = function() {
+                    var choice = this.selector.value;
+                    var choiceRange = obj[choice];
+                    this.lowElement.innerHTML = choiceRange.low;
+                    this.highElement.innerHTML = choiceRange.high;
+                    return choiceRange;
+                }
+            }
+
+            /**
+            * Update Estimator object (and child objects) when selections
+            * change.
+            **/
+            this.update = function () {
+                var k;
+                var optionRange;
+                this.params.rezero();
+                
+                for (k=0; k<this.rowObjs.length; k++) {
+                    // Read choices from selection elements and update table.
+                    optionRange = this.rowObjs[k].readAndUpdate();
+                    // Update params object of parent Estimator object
+                    this.params.increment(optionRange);
+                }
+            }
+            // Update immediately on creating Estimator object
+            this.update();
+
+            /**
+            * Create a selection question.
+            *
+            * @param (array) arr Selection choices
+            * @param (DOM object) el Parent DOM object
+            * @param (object) parent Object which has an update method which 
+            *   can take two strings as inputs.
+            * @return (DOM object) selector object.
+            **/
+            function newSelector(arr, el, parent) {
+                var q = document.createElement("select");
+                var k, item, entry;
+                var that = parent;
+                // Create option elements
+                for (k=0; k<arr.length; k++) {
+                    item = document.createElement("option");
+                    entry = arr[k];
+                    item.value = entry;
+                    item.innerHTML = entry;
+                    q.appendChild(item);
+                }
+
+                el.appendChild(q);
+
+                // Add listener to update parent object on change.
+                q.addEventListener("change", function () {
+                    that.update();
+                });
+
+                return q;
+            }
+        }
+
+    </script>
+</body>
+
