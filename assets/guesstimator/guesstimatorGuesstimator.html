@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <script src="Chart.min.js"></script>
+    <script src="Estimator2.js"></script>
+    <style>
+        .minMaxWidth {
+            width: 380px;
+        }
+        @media (min-width: 380px) {
+            .minMaxWidth {
+                width: 100%;
+            }
+        }
+        @media (min-width: 600px) {
+            .minMaxWidth {
+                width: 600px;
+            }
+        }
+    </style>
+
+</head>
+<body style="font-size:1.3rem">
+    <noscript style="color:#ff0000">
+        Javascript appears to be disabled on your browser. This page requires javascript.
+    </noscript>
+    <div class = "minMaxWidth">
+        <h3>Guesstimator cost guesstimator </h3>
+        <p style="font-size:0.9rem"> 
+            To see a ball-park distribution of how much it might
+            cost to build and install a guesstimator for you, enter
+            options desired below.
+        </p>
+        <!--
+            Code selectors in HTML so can control location; 
+                classes should include guesstimator instance
+        -->
+        <br/> Pricing plan complexity:
+        <select id="Model Complexity" class="gs1">
+            <option value="Simple">Simple</option>
+            <option value="Complex">Complex</option>
+        </select>
+        Information you have: 
+        <select id="Information Available" class="gs1">
+            <option value="Experience">Experience</option>
+            <option value="Sales data">Sales data</option>
+            <option value="Market research">Market research</option>
+        </select>
+        <br/> Graphics
+        <select id="Graphics" class="gs1">
+            <option value="Defaults">Defaults</option>
+            <option value="Minor tweaks">Minor tweaks</option>
+            <option value="Major customization">Major customization</option>
+        </select>
+        Installation: 
+        <select id="Installation" class="gs1">
+            <option value="Not needed">Not needed</option>
+            <option value="Raw HTML/Jekyll">Raw HTML/Jekyll</option>
+            <option value="WordPress">WordPress</option>
+            <option value="Rails/Django">Rails/Django</option>
+        </select>
+        <br/>
+    </div>
+    <!-- Canvas for chart -->
+    <div class="minMaxWidth">
+        <canvas id="myChart" style="border:1px solid #000000;"></canvas>
+    </div>
+
+<script>
+    var myGuests = {
+        'Base' : {
+            'fixed' : 300,
+        },
+        'Model Complexity' : {
+            'select' : {
+                'Simple' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [75, 150],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Complex' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [150, 300],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+            }
+        },
+        'Information Available' : {
+            'select' : {
+                'Experience' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [75, 150],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Sales data' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [150, 400],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Market research' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [400, 800],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+            }
+        },
+        'Graphics' : {
+            'select' : {
+                'Defaults' : 0,
+                'Minor tweaks' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [75, 400],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Major customization' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [200, 1200],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+            }
+        },
+        'Installation' : {
+            'select' : {
+                'Not needed' : 0,
+                'Raw HTML/Jekyll' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [50, 150],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'WordPress' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [50, 300],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Rails/Django' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [150, 1000],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+            }
+        },
+    };
+
+    function myFun(xs) {
+        var pltSrs = {"Total" : {}};
+        pltSrs["Base"] = {"vals" : xs["Base"],
+            "color" : "#a9a000"};
+        pltSrs["Model"] = {"vals" : guesstimator.add(xs["Model Complexity"], xs["Information Available"]),
+            "color" : "#22cc00"};
+        pltSrs["Graphics"] = {"vals" : xs["Graphics"], "color" : "#0000ff"};
+        pltSrs["Installation"] = {"vals" : xs["Installation"], "color" : "#bbbbbb"};
+        pltSrs["Total"] = {
+            "vals" : 
+                guesstimator.elementByElement(pltSrs["Base"].vals, 
+                    guesstimator.add(pltSrs["Model"].vals, 
+                    guesstimator.add(pltSrs["Graphics"].vals, pltSrs["Installation"].vals)), 
+                    Math.max
+                ),
+             "color" : "#000000",
+             "borderWidth" : 2,
+             "opacity" : 0.7};
+        return pltSrs
+    };
+
+    var rangeFun = function (gsObj) {
+        return [0, Math.max.apply(null, gsObj.plotSeries["Total"]) ];
+    };
+    
+    /** Next steps:
+     * Check that variances and means add correctly.
+     * Reorganize for easier code maintenance.
+     * Better plotting tools.
+     *   -- For line plots: get rid of y axis, specify labels on y axis separately from
+     *      points.
+     *   -- Create dot plots (simple canvas; not Chart.js)
+     *   -- Explanatory text.
+     * */
+    window.onload = function () {
+        // Scale sample size to speed of device.
+        var dtTest = 100; // Test time in milliseconds;
+        var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
+        var m = guesstimator.timeTest(dtTest); // Samples generated over dt
+        var bc = 100;
+        // Cut off at maximum useful sample size of 100000 and minimum of 500
+        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+
+        // Read inputs, run model, and produce graph
+        guesstimator.model(myGuests, myFun, "gs1", "myChart", 
+            {
+                n : m, binCount : bc, range : [0, 5000], 
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost ($)"
+            }
+        );
+    };
+
+</script>
+</body>

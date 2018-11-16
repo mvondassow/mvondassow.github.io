@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <script src="Chart.min.js"></script>
+    <script src="Estimator2.js"></script>
+    <style>
+        .minMaxWidth {
+            width: 380px;
+        }
+        @media (min-width: 380px) {
+            .minMaxWidth {
+                width: 100%;
+            }
+        }
+        @media (min-width: 600px) {
+            .minMaxWidth {
+                width: 600px;
+            }
+        }
+    </style>
+
+</head>
+<body style="font-size:1.3rem">
+    <noscript style="color:#ff0000">
+        Javascript appears to be disabled on your browser. This page requires javascript.
+    </noscript>
+    <div class = "minMaxWidth">
+        <h3>Trucking cost guesstimator </h3>
+        <p style="font-size:0.9rem"> 
+            To see a ball-park distribution of transport prices, 
+            for different circumstances, enter values/selections
+            below. Precise estimates depend on other factors, such
+            as container shape/type, timing, weight, etc.
+        </p>
+        <!--
+            Code selectors in HTML so can control location; 
+                classes should include guesstimator instance
+        -->
+        <br/> Volume (cubic feet)? 
+        <input type="number" id="Volume" value="1" step="1">
+        <br/> Perishable?
+        <select id="Perishability" class="gs1">
+            <option value="Non-perishable">Non-perishable</option>
+            <option value="Frozen">Frozen</option>
+            <option value="Perishable">Perishable</option>
+        </select>
+        Fragile? 
+        <select id="Fragility" class="gs1">
+            <option value="Non-fragile">Non-fragile</option>
+            <option value="Fragile">Fragile</option>
+        </select>
+        <br/> Specialty items?
+        <select id="Specialties" class="gs1">
+            <option value="None">None</option>
+            <option value="Wine/liquor">Wine/liquor</option>
+        </select>
+        <br/>Pick up location: 
+        <select id="Pick up" class="gs1">
+            <option value="Regular stop">Regular stop</option>
+            <option value="<2.5 miles">&lt;2.5 miles</option>
+            <option value="<15 miles">&lt;15 miles</option>
+        </select>
+        Drop off location: 
+        <select id="Drop off" class="gs1">
+            <option value="Regular stop">Regular stop</option>
+            <option value="<2.5 miles">&lt;2.5 miles</option>
+            <option value="<15 miles">&lt;15 miles</option>
+        </select>
+        <br/>
+    </div>
+    <!-- Canvas for chart -->
+    <div class="minMaxWidth">
+        <canvas id="myChart" style="border:1px solid #000000;"></canvas>
+    </div>
+
+<script>
+    var myGuests = {
+        'Base' : {
+            'fixed' : 10,
+        },
+        'Volume' : {
+            'input' : {'paramIDs' : ['Volume'], 'distribution' : 'nDelta'}
+        },
+        'Scale' : {
+            'fixed' : 1.55,
+        },
+        'Perishability' : {
+            'select' : {
+                'Non-perishable' : 1,
+                'Frozen'  : 1.25,
+                'Perishable': {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [1, 1.5],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                }
+            }
+        },
+        'Fragility' : {
+            'select' : {
+                'Non-fragile' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [0.9, 1.1],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+                'Fragile' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [1, 1.75],
+                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                },
+            }
+        },
+        'Specialties' : { 
+            'select' : {
+                'None' : 1,
+                'Wine/liquor' : 1.5,
+            },
+        },
+        'Pick up' : {
+            'select' : {
+                'Regular stop' : 0,
+                '<2.5 miles' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0, 10],
+                },
+                '<15 miles' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [7, 75],
+                },
+            }
+        },
+        'Drop off' : {
+            'select' : {
+                'Regular stop' : 0,
+                '<2.5 miles' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0, 10],
+                },
+                '<15 miles' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [7, 75],
+                },
+            }
+        },
+    }
+
+    function myFun(xs) {
+        var pltSrs = {};
+        pltSrs["Base"] = {"vals" : xs["Base"],
+            "color" : "#a9a000"};
+        pltSrs["Load"] = {"vals" : guesstimator.mult(
+                guesstimator.mult(
+                    guesstimator.mult(xs["Volume"], xs["Scale"]), 
+                    guesstimator.mult(xs["Perishability"], xs["Fragility"]) 
+                ), xs["Specialties"]
+            ),
+            "color" : "#22cc00"};
+        pltSrs["Travel"] = {"vals" : guesstimator.add(xs["Pick up"],xs["Drop off"]), "color" : "#bbbbbb"};
+        pltSrs["Total"] = {
+            "vals" : 
+                guesstimator.add(
+                    guesstimator.add(pltSrs["Travel"].vals, xs["Base"]), 
+                    pltSrs["Load"].vals
+                ),
+             "color" : "#000000"};
+        return pltSrs
+    }
+    
+    /** Next steps:
+     * Check that variances and means add correctly.
+     * Reorganize for easier code maintenance.
+     * Better plotting tools.
+     *   -- For line plots: get rid of y axis, specify labels on y axis separately from
+     *      points.
+     *   -- Create dot plots (simple canvas; not Chart.js)
+     *   -- Explanatory text.
+     * */
+    window.onload = function () {
+        // Scale sample size to speed of device.
+        var dtTest = 100; // Test time in milliseconds;
+        var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
+        var m = guesstimator.timeTest(dtTest); // Samples generated over dt
+        var bc = 100;
+        // Cut off at maximum useful sample size of 100000 and minimum of 500
+        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+
+        // Read inputs, run model, and produce graph
+        guesstimator.model(myGuests, myFun, "gs1", "myChart", 
+            {
+                n : m, binCount : bc, range : [0, 600], 
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost ($)"
+            }
+        );
+    };
+
+</script>
+</body>

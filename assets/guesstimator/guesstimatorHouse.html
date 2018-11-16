@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <script src="Chart.min.js"></script>
+    <script src="Estimator2.js"></script>
+    <style>
+        .minMaxWidth {
+            width: 380px;
+        }
+        @media (min-width: 380px) {
+            .minMaxWidth {
+                width: 100%;
+            }
+        }
+        @media (min-width: 600px) {
+            .minMaxWidth {
+                width: 600px;
+            }
+        }
+    </style>
+
+</head>
+<body style="font-size:1.3rem">
+    <noscript style="color:#ff0000">
+        Javascript appears to be disabled on your browser. This page requires javascript.
+    </noscript>
+    <div class = "minMaxWidth">
+        <h3>House construction cost guesstimator </h3>
+        <p style="font-size:0.9rem"> 
+            To see a ball-park distribution of house prices, 
+            for different circumstances, enter values/selections
+            below.
+        </p>
+        <!--
+            Code selectors in HTML so can control location; 
+                classes should include guesstimator instance
+        -->
+        Land cost (thousands of dollars): 
+        <input type="number" id="Land" value="100" step="5">
+        <br/> House type: 
+        <select id="House Type" class="gs1">
+            <option value="Manufactured">Manufactured</option>
+            <option value="Modular">Modular</option>
+            <option value="Stick">Stick</option>
+        </select>
+        House size: 
+        <select id="Size" class="gs1">
+            <option value="2bd1ba">2bd1ba</option>
+            <option value="3bd2ba">3bd2ba</option>
+        </select>
+        <br/> Water source: 
+        <select id="Water" class="gs1">
+            <option value="Town hookup">Town hookup</option>
+            <option value="Well">Well</option>
+            <option value="Community">Community</option>
+        </select>
+        Waste disposal: 
+        <select id="Sewage" class="gs1">
+            <option value="Town hookup">Town hookup</option>
+            <option value="Septic">Septic</option>
+        </select>
+        <br/>
+        <span style="font-size:0.7rem">Clearing, trenching, landscaping, etc. not included</span>
+    </div>
+    <!-- Canvas for chart -->
+    <div class="minMaxWidth">
+        <canvas id="myChart" style="border:1px solid #000000;"></canvas>
+    </div>
+
+<script>
+    var myGuests = {
+        'Land' : {
+            'input' : {'paramIDs' : ['Land'], 'distribution' : 'nDelta'}
+        },
+        'Permits' : {
+            'fixed' : {
+                'distribution' : 'nRandLognorm', 
+                'params' : [ 0.8047189562170501, 0.6277058940850625 ], // Guessed from little data
+            }
+        },
+        'Foundation' : {
+            'fixed' : {
+                'distribution' : 'nRandLognorm', 
+                'params' : [ 3.131699131295812, 0.33045938392636637 ], // Guessed from little data
+            }
+        },
+        'House Type' : {
+            'select' : {
+                'Manufactured' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [4.664061703816284, 0.1281217109875334], //[90, 125], // Loosly based on Coach Corral
+                },
+                'Modular'  : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [5.06332, 0.183308], // [125, 200], // Loosly based on Coach Corral
+                },
+                'Stick': {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [5.4094, 0.31104]// [150, 333], // Based on Lexar (3 bd/2 ba, divided by 1.5 to estimate for 2bd/2ba)
+                }
+            }
+        },
+        'Sewage' : {
+            'select' : {
+                'Septic' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [2.9634630129852053, 0.19922996246723498], // [15, 25], // Loosely based on MAS and Forrest.
+                },
+                'Town hookup': 13, // Based on MAS (Roche or FH)
+            }
+        },
+        'Water' : { 
+            'select' : {
+                'Well' : {
+                    'distribution' : 'nRandLognorm', // 'nRandUniform',
+                    'params' : [3.3423058638339636, 0.2703382139469366], // [20, 40], // Based on MAS
+                },
+                'Town hookup' : 8, // Based on MAS (Roche or FH)
+                'Community' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [0.5, 15], // Based on MAS
+                },
+            },
+        },
+        'Size' : {
+            'select' : {
+                '3bd2ba' : 1.5,
+                '2bd1ba' : 1,
+            }
+        },
+    }
+
+    function myFun(xs) {
+        var pltSrs = {};
+        pltSrs["House"] = {"vals" : guesstimator.mult(xs["House Type"], xs["Size"]),
+            "color" : "#a9a000"};
+        pltSrs["Land"] = {"vals" : xs["Land"],
+            "color" : "#22cc00"};
+        pltSrs["Sewage"] = {"vals" : guesstimator.mult(xs["Sewage"], xs["Size"]),
+            "color" : "#654321"};
+        pltSrs["Water"] = {"vals" : xs["Water"],
+            "color" : "#0000ff"};
+        pltSrs["Permits"] = {"vals" : xs["Permits"], "color" : "#aa0000"};
+        pltSrs["Foundation"] = {"vals" : xs["Foundation"], "color" : "#bbbbbb"};
+        pltSrs["Total"] = {
+            "vals" : 
+                guesstimator.add(
+                    guesstimator.add(
+                        guesstimator.add(pltSrs["House"].vals, pltSrs["Sewage"].vals),
+                        guesstimator.add(pltSrs["Water"].vals, pltSrs["Permits"].vals)
+                    ), guesstimator.add(pltSrs["Foundation"].vals, pltSrs['Land'].vals)
+                ),
+             "color" : "#000000"};
+        return pltSrs
+    }
+    
+    /** Next steps:
+     * Check that variances and means add correctly.
+     * Reorganize for easier code maintenance.
+     * Better plotting tools.
+     *   -- For line plots: get rid of y axis, specify labels on y axis separately from
+     *      points.
+     *   -- Create dot plots (simple canvas; not Chart.js)
+     *   -- Explanatory text.
+     * */
+    window.onload = function () {
+        // Scale sample size to speed of device.
+        var dtTest = 100; // Test time in milliseconds;
+        var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
+        var m = guesstimator.timeTest(dtTest); // Samples generated over dt
+        var bc = 100;
+        // Cut off at maximum useful sample size of 100000 and minimum of 500
+        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+
+        // Read inputs, run model, and produce graph
+        guesstimator.model(myGuests, myFun, "gs1", "myChart", 
+            {
+                n : m, binCount : bc, range : [0, 1000], 
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)"
+            }
+        );
+    };
+
+</script>
+</body>
