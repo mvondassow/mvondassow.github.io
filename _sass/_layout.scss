@@ -7,6 +7,28 @@
     background-size: cover;
     height: 30vw;
 }
+body {    
+    min-height: 100vh;
+}
+main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 4rem;
+    position: relative;
+    min-height: 100%;
+}
+article {
+    font-size: 1.25rem;
+    padding-bottom: 4rem;
+}
+footer {
+    width: 100%;
+    text-align: center;
+
+    position: absolute;
+    bottom: 5px;
+    //height: 4rem;
+}
 .headline {font-size: 7vw}
 @media (min-width: 700px) {
     #myHeader {

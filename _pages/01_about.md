@@ -17,4 +17,3 @@ Data analysis: I have used non-parametric methods, parametric methods (especiall
 
 Science & education: For short descriptions of my previous and ongoing research projects please see [this page](/research). I received a B.S. in biology from the University of Washington and a Ph.D. in integrative biology from the University of California, Berkeley. I then did a postdoc in the University of Pittsburgh's Bioengineering Department and taught biology courses at various universities and community colleges. I am currently affiliated with the [Ronin Institute](http://ronininstitute.org/).
 
-<hr/>
