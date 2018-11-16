@@ -9,6 +9,9 @@
         .minMaxWidth {
             width: 380px;
         }
+        .anchorService {
+            display:none;
+        }
         @media (min-width: 380px) {
             .minMaxWidth {
                 width: 100%;
@@ -33,13 +36,26 @@
             for different circumstances, enter values/selections
             below. Precise estimates depend on other factors, such
             as container shape/type, timing, weight, etc.
+
+            Note: does not include services such as inventorying,
+            stocking, shopping ($25 per hour), returns ($5 per
+            pickup), or solo trips ($350). 
         </p>
+        <select onchange="myToggle(this, ['singleTrip', 'anchorService'])">
+            <option value="singleTrip">Single trip</option>
+            <option value="anchorService">Regular run</option>
+        </select>
+    </div>
+    <div class = "minMaxWidth anchorService">
+        $225/week
+    </div>
+    <div class = "minMaxWidth singleTrip">
         <!--
             Code selectors in HTML so can control location; 
                 classes should include guesstimator instance
         -->
         <br/> Volume (cubic feet)? 
-        <input type="number" id="Volume" value="1" step="1">
+        <input type="number" id="Volume" value="10" step="1">
         <br/> Perishable?
         <select id="Perishability" class="gs1">
             <option value="Non-perishable">Non-perishable</option>
@@ -69,9 +85,13 @@
             <option value="<15 miles">&lt;15 miles</option>
         </select>
         <br/>
+        
+        Storage (days): 
+        <input type="number" id="Storage" value="0" step="1">
+        <br/>
     </div>
     <!-- Canvas for chart -->
-    <div class="minMaxWidth">
+    <div class="minMaxWidth singleTrip">
         <canvas id="myChart" style="border:1px solid #000000;"></canvas>
     </div>
 
@@ -143,10 +163,17 @@
                 },
             }
         },
+        'Storage' : {
+            'input' : {'paramIDs' : ['Storage'], 'distribution' : 'nDelta'}
+        },
+        'PerDay' : {
+            'fixed' : 3,
+        },
     }
 
     function myFun(xs) {
         var pltSrs = {};
+        pltSrs["Total"] = {};
         pltSrs["Base"] = {"vals" : xs["Base"],
             "color" : "#a9a000"};
         pltSrs["Load"] = {"vals" : guesstimator.mult(
@@ -157,13 +184,14 @@
             ),
             "color" : "#22cc00"};
         pltSrs["Travel"] = {"vals" : guesstimator.add(xs["Pick up"],xs["Drop off"]), "color" : "#bbbbbb"};
+        pltSrs["Storage"] = {"vals" : guesstimator.mult(xs["Storage"], xs["PerDay"]), "color" : "#aaaaff"}
         pltSrs["Total"] = {
             "vals" : 
                 guesstimator.add(
                     guesstimator.add(pltSrs["Travel"].vals, xs["Base"]), 
-                    pltSrs["Load"].vals
+                    guesstimator.add(pltSrs["Load"].vals, pltSrs["Storage"].vals)
                 ),
-             "color" : "#000000"};
+             "color" : "#000000", "borderWidth" : 2, "opacity" : 0.6};
         return pltSrs
     }
     
@@ -193,6 +221,20 @@
             }
         );
     };
+
+    function myToggle(obj, arr) {
+        var k, curEls, j;
+        for (k=0; k<arr.length; k++) {
+            curEls = document.getElementsByClassName(arr[k]);
+            for (j=0; j<curEls.length; j++) {
+                if (arr[k] !== obj.value) {
+                    curEls[j].style.display = "none"; 
+                } else {
+                    curEls[j].style.display = "inherit"; 
+                }
+            }
+        }
+    }
 
 </script>
 </body>
