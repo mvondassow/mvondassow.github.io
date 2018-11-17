@@ -7,7 +7,7 @@ layout: default
 
 The following are a few tools (functions, scripts, etc) that I made for various projects. Most were created in the context of a larger product so they might need tweaking for other purposes.
 
-{% for product in site.products %}
+{% for product in site.products reversed %}
   <h3><a href="{{ product.url | prepend: site.baseurl }}">{{ product.title }}</a></h3>
   {{ product.excerpt }}<a href="{{ product.url | prepend: site.baseurl }}">... [continue reading]</a>
 {% endfor %}

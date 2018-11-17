@@ -3,9 +3,7 @@ layout: default
 ---
 <p style="text-align: center;">--<i>UNDER CONSTRUCTION</i>--</p>
 
-Help clients understand quantitative information or [complex estimates](/assets/guesstimator/guesstimatorTruck.html)
-<!-- NOT DONE: Create calculator for Real Estate pricing -->
-
+Help clients understand quantitative information or [evaluate likely costs](/tools/09_Guesstimation/)
 
 Use experiments and data analysis to:
 * Compare products or strategies
@@ -13,12 +11,10 @@ Use experiments and data analysis to:
 * Verify whether the data say what you think they say
 
 
-[Simplify processes or extend software capabilities](/tools/01_TrainingHistory/)
-<!-- Link to a description of sheet for Noel -->
+[Simplify processes or extend software capabilities](/tools/08_TrainingHistory/)
 
 
 [Add functionality/interactivity to websites](/assets/Examples)
-<!-- Link to a page with quiz generator and vector visualization in iFrame -->
 
 
 
