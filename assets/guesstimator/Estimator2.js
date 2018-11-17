@@ -311,7 +311,7 @@ guesstimator.histogram = function (obj) {
 
             // Group into histogram bins
             seriesData = guesstimator.binData(
-                curSeries.vals, obj.options.range, binCount, "normalize"
+                curSeries.vals, obj.range, binCount, "normalize"
             );
 
             // Check that bins matches for each series.
@@ -336,8 +336,8 @@ guesstimator.histogram = function (obj) {
         };
 
         // Pretty-up the ends of the labels
-        bins[0] = "<" + obj.options.range[0];
-        bins[bins.length-1] = ">" + obj.options.range[1];
+        bins[0] = "<" + obj.range[0];
+        bins[bins.length-1] = ">" + obj.range[1];
 
         if (!obj.chart) {
             obj.chart = new Chart(ctx, {
@@ -348,15 +348,32 @@ guesstimator.histogram = function (obj) {
                 },
                 options: {
                     scales : {
-                        yAxes : [{type : 'linear', display : false, 
-                            gridLines : false, ticks : {min : 0, max : 1.1,}}], 
+                        yAxes : [{
+                            type : 'linear', display : true,
+                            gridLines : {display: false},
+                            ticks : {
+                                min : 0, max : 1.1, 
+                                callback : function (tickVal, tickInd, ticks) {
+                                    return (tickInd === 0) ? 
+                                        "High" : 
+                                        (tickInd === (ticks.length -1) ? "Low" : "");
+                                }
+                            },
+                            scaleLabel : {
+                                labelString : obj.options.hasOwnProperty("yLabel") ? 
+                                    obj.options.yLabel : "", 
+                                display : true
+                            },
+                        }], 
                         xAxes : [{
                             display: true,
                             gridLines : {display : false, tickMarkLength : 10},
                             ticks : {maxTicksLimit : obj.options.maxTicksLimit || 9 },
-                            scaleLabel : {labelString : obj.options.xLabel, display : true},
-                            //barPercentage: allSeries.length,
-                            //categoryPercentage: 1,
+                            scaleLabel : {
+                                labelString : obj.options.hasOwnProperty("xLabel") ? 
+                                    obj.options.xLabel : "", 
+                                display : true
+                            },
 						}],
                     },
                     animation : {
@@ -368,13 +385,10 @@ guesstimator.histogram = function (obj) {
                     responsiveAnimationDuration : 0, // animation duration after a resize
                 }});
         } else {
-            for (j = 0; j<allSeries.length; j++) {
-                for (q = 0; q<obj.chart.data.datasets.length; q++) {
-                    if (allSeries[j].label === obj.chart.data.datasets[q].label) {
-                        obj.chart.data.datasets[q] = allSeries[j];
-                    }
-                }
-            }
+            obj.chart.data = {  
+                labels : bins,
+                datasets: allSeries,
+            };
             obj.chart.update();
         }
     };
@@ -404,9 +418,8 @@ guesstimator.histogram = function (obj) {
  *      and colors of charts.
  *      Arguments : xDists object
  *      must return {<label0> : {vals : [y0,y1,...], color : <color>}, <label1> ...}
- *  @param {string} className : name for selectors to read
  *  @param {string} chartDivID : ID for location to put chart
- *  @oaram {object} opts : 
+ *  @param {object} opts : 
  *      {n : number of random samples to generate,
  *      rng : range of chart; numeric 2-element array,
  *      binCount : number, number of bin for histogram
@@ -416,9 +429,13 @@ guesstimator.histogram = function (obj) {
  *      }
  *  @returns {object}
  */
-guesstimator.model = function (xDists, modelFun, className, chartDivID, opts){
-    var gs = {"xDists" : xDists, "modelFun" : modelFun,
-        "chartElementID" : chartDivID, "options" : opts || {}};
+guesstimator.model = function (xDists, modelFun, chartDivID, opts){
+    var gs = {
+        "xDists" : guesstimator.deepCopy(xDists), 
+        "modelFun" : guesstimator.deepCopy(modelFun),
+        "chartElementID" : chartDivID, 
+        "options" : opts ? guesstimator.deepCopy(opts) : {}
+    };
     var k;
     gs.n = opts.n || 500;
 
@@ -502,6 +519,8 @@ guesstimator.model = function (xDists, modelFun, className, chartDivID, opts){
 
         gs.plotSeries = gs.modelFun(gs.xs);
 
+        gs.range = guesstimator.createRange(gs.plotSeries, gs.options.range, gs.options.rangeSDs, "vals");
+
         gs.createOrUpdateChart();
     }
     gs.update();
@@ -510,6 +529,46 @@ guesstimator.model = function (xDists, modelFun, className, chartDivID, opts){
 
     return gs;
 }; 
+
+/**
+ * @param {object} obj : data object
+ * @param {array} arr : 2 element array; each element should be a number 
+ *  or a name for a data series in obj.
+ * @param {number} sds : min number of standard deviations between data mean and range boundary
+ * @param {string} vals : optional key to find data array for dataset in obj if data is 
+ *  nested, e.g. {set1 : {values : [x1, x2...], color : string, ...}, set2 : {...}, ...}
+ * @return array with two numeric values.
+ */
+guesstimator.createRange = function (obj, arr, sds, str) {
+    var rng = [], k, params = {}, curdata, x, xscale;
+    var sds = guesstimator.isValidNum(sds) ? sds : 1.5;
+
+    for (k = 0; k<2; k++) {
+        // If arr given with a string, check if that is a name for dataset in obj
+        if (obj.hasOwnProperty(arr[k])) {
+            // If so, if it has not been done before, calculate parameters to define
+            // range min and max.
+            if (!params.hasOwnProperty(arr[k])) {
+                curdata = (typeof str !== undefined) ? obj[arr[k]][str] : obj[arr[k]]
+                params[arr[k]] = {
+                    "mean" : guesstimator.mean(curdata),
+                    "sd" : guesstimator.stdev(curdata),
+                }
+            }
+            // Calculate raw range in or max
+            x = params[arr[k]]["mean"] + sds * params[arr[k]]["sd"] *((k === 1) ? 1 : -1);
+
+            // Round to nearest larger/smaller decimal significant figure
+            xscale = Math.pow(10, Math.floor(Math.log(Math.abs(x))/Math.log(10)) );
+            rng.push( (k===1) ? ( xscale * Math.ceil(x/xscale) ) : ( xscale * (Math.floor(x/xscale)) ) );
+            
+        } else if (guesstimator.isValidNum(arr[k])) {
+            rng.push(arr[k]);
+        }
+    }
+
+    return rng;
+};
 
 /**
  * Range calculation : 
@@ -541,6 +600,16 @@ guesstimator.model = function (xDists, modelFun, className, chartDivID, opts){
  *
  */
 
+/**
+ * Copy an object by value (handles circular or anastamosing
+ * internal reference structures).
+ * It only copies enumerable properties of object.
+ * It can copy functions, but cannot copy hidden state variables (e.g.
+ * for closures).
+ * @param {any} objParent : can be number, string, date, array, object, etc.
+ *  objects and arrays can contain other objects or arrays. 
+ * @return {any} Same type as parent
+ */
 guesstimator.deepCopy = function (objParent) {
     //Save identity of object references;
     var prevObjs = [], copiedObjs = [];

@@ -38,16 +38,8 @@
             as container shape/type, timing, weight, etc.
 
             Note: does not include services such as inventorying,
-            stocking, shopping ($25 per hour), returns ($5 per
-            pickup), or solo trips ($350). 
+            stocking, returns ($5 per pickup), or solo trips ($350). 
         </p>
-        <select onchange="myToggle(this, ['singleTrip', 'anchorService'])">
-            <option value="singleTrip">Single trip</option>
-            <option value="anchorService">Regular run</option>
-        </select>
-    </div>
-    <div class = "minMaxWidth anchorService">
-        $225/week
     </div>
     <div class = "minMaxWidth singleTrip">
         <!--
@@ -78,7 +70,7 @@
             <option value="<2.5 miles">&lt;2.5 miles</option>
             <option value="<15 miles">&lt;15 miles</option>
         </select>
-        Drop off location: 
+        <br/>Drop off location: 
         <select id="Drop off" class="gs1">
             <option value="Regular stop">Regular stop</option>
             <option value="<2.5 miles">&lt;2.5 miles</option>
@@ -195,15 +187,6 @@
         return pltSrs
     }
     
-    /** Next steps:
-     * Check that variances and means add correctly.
-     * Reorganize for easier code maintenance.
-     * Better plotting tools.
-     *   -- For line plots: get rid of y axis, specify labels on y axis separately from
-     *      points.
-     *   -- Create dot plots (simple canvas; not Chart.js)
-     *   -- Explanatory text.
-     * */
     window.onload = function () {
         // Scale sample size to speed of device.
         var dtTest = 100; // Test time in milliseconds;
@@ -214,15 +197,16 @@
         m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
 
         // Read inputs, run model, and produce graph
-        guesstimator.model(myGuests, myFun, "gs1", "myChart", 
+        guesstimator.model(myGuests, myFun, "myChart", 
             {
                 n : m, binCount : bc, range : [0, 600], 
-                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost ($)"
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost ($)",
+                yLabel: "Probability",
             }
         );
     };
 
-    function myToggle(obj, arr) {
+    function toggleDisplayAmong(obj, arr) {
         var k, curEls, j;
         for (k=0; k<arr.length; k++) {
             curEls = document.getElementsByClassName(arr[k]);

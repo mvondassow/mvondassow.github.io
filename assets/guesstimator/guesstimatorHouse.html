@@ -156,15 +156,6 @@
         return pltSrs
     }
     
-    /** Next steps:
-     * Check that variances and means add correctly.
-     * Reorganize for easier code maintenance.
-     * Better plotting tools.
-     *   -- For line plots: get rid of y axis, specify labels on y axis separately from
-     *      points.
-     *   -- Create dot plots (simple canvas; not Chart.js)
-     *   -- Explanatory text.
-     * */
     window.onload = function () {
         // Scale sample size to speed of device.
         var dtTest = 100; // Test time in milliseconds;
@@ -175,10 +166,11 @@
         m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
 
         // Read inputs, run model, and produce graph
-        guesstimator.model(myGuests, myFun, "gs1", "myChart", 
+        guesstimator.model(myGuests, myFun, "myChart", 
             {
                 n : m, binCount : bc, range : [0, 1000], 
-                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)"
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)",
+                yLabel: "Probability",
             }
         );
     };
