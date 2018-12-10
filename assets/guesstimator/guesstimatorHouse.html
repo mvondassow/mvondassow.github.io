@@ -11,10 +11,10 @@
         }
         @media (min-width: 380px) {
             .minMaxWidth {
-                width: 100%;
+                width: 97%;
             }
         }
-        @media (min-width: 600px) {
+        @media (min-width: 618px) {
             .minMaxWidth {
                 width: 600px;
             }
@@ -63,11 +63,22 @@
         </select>
         <br/>
         <span style="font-size:0.7rem">Clearing, trenching, landscaping, etc. not included</span>
+        <p>
+            Plot type: 
+            <select id="chartType" onchange="togglePlotType(this, 'Budget', 'overUnderPlot')">
+                <option value="histogram">Probability curves</option>
+                <option value="overUnderPlot">Over/under budget</option>
+            </select>
+        </p>
+        <p id="Budget" style="display: none"> Budget: 
+            <br/> &emsp;Hard limit: 
+            <input id="highThreshold" type="number" value="600" step="10"/>
+            <br/> &emsp;Discomfort limit: 
+            <input id="lowThreshold" type="number" value="450" step="10"/>
+        </p>
     </div>
     <!-- Canvas for chart -->
-    <div class="minMaxWidth">
-        <canvas id="myChart" style="border:1px solid #000000;"></canvas>
-    </div>
+    <div class="minMaxWidth" id="myChart"></div>
 
 <script>
     var myGuests = {
@@ -117,10 +128,10 @@
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
                     'params' : [3.3423058638339636, 0.2703382139469366], // [20, 40], // Based on MAS
                 },
-                'Town hookup' : 8, // Based on MAS (Roche or FH)
+                'Town hookup' : 18, // Based on MAS (Roche or FH)
                 'Community' : {
                     'distribution' : 'nRandUniform',
-                    'params' : [0.5, 15], // Based on MAS
+                    'params' : [3, 15], // Based on MAS
                 },
             },
         },
@@ -156,23 +167,43 @@
         return pltSrs
     }
     
+    function togglePlotType(obj, toggleElID, displayIfValue) {
+        if (obj.value === displayIfValue) {
+            document.getElementById(toggleElID).style.display = "inherit";
+        } else {
+            document.getElementById(toggleElID).style.display = "none";
+        }
+    }
+
     window.onload = function () {
         // Scale sample size to speed of device.
         var dtTest = 100; // Test time in milliseconds;
         var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
         var m = guesstimator.timeTest(dtTest); // Samples generated over dt
-        var bc = 100;
         // Cut off at maximum useful sample size of 100000 and minimum of 500
-        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+        m = Math.max(Math.min(Math.floor(tScale * m), 100000), 500);
+
+        // Options for different chart types.
+        var chartOpts = {
+            "overUnderPlot" : {
+                chartType : "overUnderPlot", highThreshold : 
+                "highThreshold", lowThreshold : "lowThreshold", n : m,
+            },
+            "histogram" : {
+                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)",
+                yLabel: "Probability", binCount : 100, range : [0, 1000], n : m,
+            },
+        }
+        // DOM element for selector for chart type
+        var chartToggleEl = document.getElementById("chartType");
+        togglePlotType(chartToggleEl, "Budget", "overUnderPlot")
 
         // Read inputs, run model, and produce graph
-        guesstimator.model(myGuests, myFun, "myChart", 
-            {
-                n : m, binCount : bc, range : [0, 1000], 
-                chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)",
-                yLabel: "Probability",
-            }
-        );
+        guesstimator.model(myGuests, myFun, "myChart", chartOpts[chartToggleEl.value]);
+        
+        chartToggleEl.addEventListener("change", function(){
+            guesstimator.model(myGuests, myFun, "myChart", chartOpts[chartToggleEl.value]);
+        })
     };
 
 </script>

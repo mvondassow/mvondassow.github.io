@@ -134,8 +134,7 @@
             </div>
         </div>
         <!-- Canvas for chart -->
-        <div class="minMaxWidth">
-            <canvas id="savingsChart" style="border:1px solid #000000;"></canvas>
+        <div class="minMaxWidth" id="savingsChart">
         </div>
     </div>
     <div id = "costGuesstimator">
@@ -162,7 +161,7 @@
                 <select id="Information Available" class="gsCost">
                     <option value="Experience">Your experience</option>
                     <option value="Sales data">Sales data</option>
-                    <option value="Market research">Market research</option>
+                    <option value="Research">Research</option>
                 </select>
             </p>
             <p> 
@@ -183,8 +182,7 @@
             </p>
         </div>
         <!-- Canvas for chart -->
-        <div class="minMaxWidth">
-            <canvas id="costChart" style="border:1px solid #000000;"></canvas>
+        <div class="minMaxWidth" id="costChart">
         </div>
     </div>
 
@@ -266,18 +264,18 @@
 
     var myCosts = {
         'Base' : {
-            'fixed' : 300,
+            'fixed' : 100,
         },
         'Model Complexity' : {
             'select' : {
                 'Simple' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [75, 150],
+                    'params' : [50, 150],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
                 'Complex' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [150, 300],
+                    'params' : [150, 350],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
             }
@@ -291,12 +289,12 @@
                 },
                 'Sales data' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [150, 400],
+                    'params' : [150, 500],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
-                'Market research' : {
+                'Research' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [400, 800],
+                    'params' : [600, 3000],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
             }
@@ -306,12 +304,12 @@
                 'Defaults' : 0,
                 'Minor tweaks' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [75, 400],
+                    'params' : [100, 500],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
                 'Major customization' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [200, 1200],
+                    'params' : [250, 2000],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
             }
@@ -346,10 +344,12 @@
         pltSrs["Installation"] = {"vals" : xs["Installation"], "color" : "#bbbbbb"};
         pltSrs["Total"] = {
             "vals" : 
-                guesstimator.elementByElement(xs["Base"], 
+                guesstimator.add(xs["Base"], 
                     guesstimator.add(pltSrs["Model"].vals, 
-                    guesstimator.add(pltSrs["Graphics"].vals, pltSrs["Installation"].vals)), 
-                    Math.max
+                        guesstimator.add(
+                            pltSrs["Graphics"].vals, pltSrs["Installation"].vals
+                        )
+                    )
                 ),
              "color" : "#000000",
              "borderWidth" : 2,
@@ -375,8 +375,8 @@
         var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
         var m = guesstimator.timeTest(dtTest); // Samples generated over dt
         var bc = 100;
-        // Cut off at maximum useful sample size of 100000 and minimum of 500
-        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+        // Cut off at maximum useful sample size of 100000 and minimum of 1000
+        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 10*bc);
 
         // Read inputs, run model, and produce graph
         gs = guesstimator.model(mySavings, mySavingsFun, "savingsChart", 
@@ -388,9 +388,9 @@
         );
         guesstimator.model(myCosts, myCostFun, "costChart", 
             {
-                n : m, binCount : bc, range : [0, 5000],
+                n : m, binCount : 2*bc, range : [0, 7500],
                 chartType : "histogram", maxTicksLimit : 5, xLabel: "Cost ($)",
-                 yLabel: "Probability",
+                 yLabel: "Probability", // showToolTips : true,
             }
         );
     };

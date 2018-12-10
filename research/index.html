@@ -6,6 +6,8 @@ layout: default
 <p>These are a few of the research projects I have worked on. For a complete list of publications, please see my Google Scholar <a href="https://scholar.google.com/citations?hl=en&user=vERZ04IAAAAJ&view_op=list_works&sortby=pubdate">profile page</a>. I am currently an independent scholar affiliated with the <a href="http://ronininstitute.org/">Ronin Institute</a>.</p>
 
 {% for project in site.projects %}
-  <h3><a href="{{ project.url | prepend: site.baseurl }}">{{ project.title }}</a></h3>
-  {{ project.excerpt }}<a href="{{ project.url | prepend: site.baseurl }}">... [continue reading]</a>
+  <div style="overflow: auto;">
+      <h3><a href="{{ project.url | prepend: site.baseurl }}">{{ project.title }}</a></h3>
+      {{ project.excerpt }}<a href="{{ project.url | prepend: site.baseurl }}">... [continue reading]</a>
+  </div>
 {% endfor %}

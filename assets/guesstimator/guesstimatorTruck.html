@@ -38,8 +38,18 @@
             as container shape/type, timing, weight, etc.
 
             Note: does not include services such as inventorying,
-            stocking, returns ($5 per pickup), or solo trips ($350). 
+            stocking, shopping ($25 per hour), returns ($5 per
+            pickup), or solo trips ($350). 
         </p>
+    <!-- 
+        <select onchange="toggleDisplayAmong(this, ['singleTrip', 'anchorService'])">
+            <option value="singleTrip">Single trip</option>
+            <option value="anchorService">Regular run</option>
+        </select>
+    </div>
+    <div class = "minMaxWidth anchorService">
+        $225/week 
+    -->
     </div>
     <div class = "minMaxWidth singleTrip">
         <!--
@@ -47,7 +57,7 @@
                 classes should include guesstimator instance
         -->
         <br/> Volume (cubic feet)? 
-        <input type="number" id="Volume" value="10" step="1">
+        <input type="number" id="Volume" value="40" step="1">
         <br/> Perishable?
         <select id="Perishability" class="gs1">
             <option value="Non-perishable">Non-perishable</option>
@@ -83,9 +93,7 @@
         <br/>
     </div>
     <!-- Canvas for chart -->
-    <div class="minMaxWidth singleTrip">
-        <canvas id="myChart" style="border:1px solid #000000;"></canvas>
-    </div>
+    <div class="minMaxWidth singleTrip" id="myChart"></div>
 
 <script>
     var myGuests = {
@@ -201,7 +209,7 @@
             {
                 n : m, binCount : bc, range : [0, 600], 
                 chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost ($)",
-                yLabel: "Probability",
+                yLabel: "Probability", border:"1px solid #010101;"
             }
         );
     };

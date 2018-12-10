@@ -2,6 +2,12 @@
  * Guesstimator.model() produces plots based on inputs.
  * */
 
+/**
+ * Want plotting options for: scatter of individual values; color gradient.
+ * Need: axis labelling (y: categories; x: values) and rectangles with image
+ * space or gradient.
+ */
+
 var guesstimator = {};
 
 guesstimator.copyright = "(c) Michelangelo von Dassow, 2018. All rights reserved."
@@ -266,8 +272,10 @@ guesstimator.binData = function (arr, rng, kmax, scale) {
 
 /**
  * Convert 6-character hex code to rgba string with given opacity
- * @param {string} str 
- * @param {number} op
+ * @param {string} str length 7: 3 or 6 digit hex code for color plus 
+ *  hash symbol ('#...... or #...)
+ * @param {number} op opacity (0 to 1)
+ * @return string "rgba(.,.,.,.)"
  */
 guesstimator.hexToRGBA = function (str, op) {
     var s, sl= str.length, step, rgba = [], k;
@@ -285,7 +293,7 @@ guesstimator.hexToRGBA = function (str, op) {
         for(k=0; k<sl; k += step) {
             rgba.push(parseInt(sl === 6 ? s[k] + s[k+1] : s[k], 16));
         }
-        op = (typeof op === 'undefined') ? 0 : op;
+        op = (typeof op === 'undefined') ? 1 : op;
         // Add opacity
         rgba.push(op);
 
@@ -298,12 +306,21 @@ guesstimator.isValidNum = function (x) {
 }
 
 guesstimator.histogram = function (obj) {
+    // Create canvas for plotting
+    var cvs = document.createElement("canvas");
+    var ctx = cvs.getContext("2d");
+    obj.chartElement.appendChild(cvs);
+    // Make sure has options object within obj.
+    obj.options = obj.options || {};
+    // Add border demarcation.
+    obj.options.border = (typeof obj.options.border === "string") ?
+        obj.options.border : "1px solid #000000;";
+    cvs.setAttribute("style", "border:" + obj.options.border);
+
     return function () {
         var bins, j, seriesName, seriesData, allSeries = [];
-        var binCount = (obj.options && obj.options.binCount) ? obj.options.binCount : Math.max(obj.n/100, 10);
+        var binCount = obj.options.binCount ? obj.options.binCount : Math.max(obj.n/100, 10);
         var curSeries;
-        // Get element in which to put chart
-        var ctx = document.getElementById(obj.chartElementID);
 
         // Reformat data for Chart.js
         for (seriesName in obj.plotSeries) {
@@ -347,6 +364,7 @@ guesstimator.histogram = function (obj) {
                     datasets: allSeries,
                 },
                 options: {
+                    tooltips : {enabled : false || obj.options.showToolTips},
                     scales : {
                         yAxes : [{
                             type : 'linear', display : true,
@@ -394,6 +412,239 @@ guesstimator.histogram = function (obj) {
     };
 };
 
+
+// /**
+//  * Create a 1D heatmap
+//  * @param {object} obj : keys : {highThreshold : h, lowThreshold : l,
+//  *  n : <integer>}; h & l are either numbers or 
+//  */
+// guesstimator.heatBar = function (obj) {
+//     // Create canvas for plotting
+//     var cvs = document.createElement("canvas");
+//     obj.chartElement.appendChild(cvs);
+
+//     return function () {
+//         var arr, series, h, l, lmhArr, colors, ctx, xmid, ymid, k, start, end;
+//         // Make sure has necessary options
+//         function getVal (vOrID, name) {
+//             var h;
+//             if (vOrID) {
+//                 return guesstimator.isValidNum(vOrID) ? 
+//                     h : Number(guesstimator.getVal(vOrID));
+//             } else {
+//                 throw new Error("A " + name + 
+//                     " value or input element ID string must be set.")
+//             }
+//         }
+
+//         // Get values for thresholds; handle case where user sets high threshold below low.
+//         h = getVal(obj.options.highThreshold, "highThreshold");
+//         l = getVal(obj.options.lowThreshold, "lowThreshold");
+//         if (l > h) {
+//             l = h;
+//             if (typeof "lowThreshold" === "string") {
+//                 document.getElementById("lowThreshold").value = h;
+//             } else {
+//                 alert("lowThreshold was above highThreshold; lowThreshold set to highThreshold");
+//             }
+//         }
+
+//         // Choose plotSeries to use.
+//         if (!obj.options.hasOwnProperty("Total") && !obj.plotSeries["Total"]) {
+//             throw new Error("overUnderPlot requires total series set")
+//         } else {
+//             // Default to using plotSeries with name "Total" if no other name specified.
+//             series = obj.options["Total"] || "Total";
+//             arr = obj.plotSeries[series].vals;
+//         }
+
+//         // Count values above and below low and high thresholds
+//         lmhArr = arr.reduce(
+//             function(lmh, x, j) {                
+//                 lmh[0] += (x <= l);
+//                 lmh[1] += ((x > l) && (x <= h));
+//                 lmh[2] += (x > h);
+//                 return lmh;
+//             },
+//             [0, 0, 0]
+//         );
+
+//         colors = obj.options.thresholdColors || ["#00aa00", "#ffff00", "#ff0000"]
+//         // Get element in which to put chart
+//         ctx = cvs.getContext("2d");
+//         ctx.canvas.width = cvs.parentElement.clientWidth;
+//         ctx.canvas.height = 300;
+//         xmid = ctx.canvas.width/2;
+//         ymid = ctx.canvas.height/2;
+//         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+//         start = 0;
+//         end = 0;
+
+//         console.log([ctx.canvas.width, xmid, cvs.width, cvs.parentElement.clientWidth])
+//         for (k = 2; k >= 0; k--) {
+//             ctx.beginPath();
+//             ctx.moveTo(xmid, ymid);
+//             start = end;
+//             end += (2*Math.PI)*lmhArr[k]/arr.length;
+//             ctx.arc(xmid, ymid, Math.min(xmid, ymid), start, end);
+//             ctx.fillStyle = colors[k];
+//             ctx.fill();
+//         }
+//     }
+// }
+
+/**
+ * Create a pie chart with three wedges for over highthreshold, 
+ * between high and low threshold, and below low threshold
+ * @param {object} obj : keys : {highThreshold : h, lowThreshold : l,
+ *  n : <integer>}; h & l are either numbers or 
+ */
+guesstimator.overUnderPlot = function (obj) {
+    // Create canvas for plotting
+    var cvs = document.createElement("canvas");
+    obj.chartElement.appendChild(cvs);
+    cvs.width = "100%";
+
+    /** Given either number or string, either return the number
+     * or check the value for the DOM object specified by the string.
+     * @param {string/number} vOrID : if number, number to return;
+     *  if string, get value of DOM element with that ID.
+     * @param {string} name : name of parameter searched for
+     * @return {number}
+    */
+    function getVal (vOrID, name) {
+        var h;
+        if (vOrID) {
+            return guesstimator.isValidNum(vOrID) ? 
+                h : Number(guesstimator.getVal(vOrID));
+        } else {
+            throw new Error("A " + name + 
+                " value or input element ID string must be set.")
+        }
+    }
+
+    // Function to create and update plot
+    function createPlot () {
+        var arr, series, h, l, lmhArr, colors, ctx, r, k, start, end;
+        var dims = {};
+
+        // Get values for thresholds; handle case where user sets high threshold below low.
+        h = getVal(obj.options.highThreshold, "highThreshold");
+        l = getVal(obj.options.lowThreshold, "lowThreshold");
+        if (l > h) {
+            l = h;
+            if (typeof "lowThreshold" === "string") {
+                document.getElementById("lowThreshold").value = h;
+            } else {
+                alert("lowThreshold was above highThreshold; lowThreshold set to highThreshold");
+            }
+        }
+
+        // Choose plotSeries to use.
+        if (!obj.options.hasOwnProperty("Total") && !obj.plotSeries["Total"]) {
+            throw new Error("overUnderPlot requires total series set")
+        } else {
+            // Default to using plotSeries with name "Total" if no other name specified.
+            series = obj.options["Total"] || "Total";
+            arr = obj.plotSeries[series].vals;
+        }
+
+        // Count values above and below low and high thresholds
+        lmhArr = arr.reduce(
+            function(lmh, x, j) {                
+                lmh[0] += (x <= l);
+                lmh[1] += ((x > l) && (x <= h));
+                lmh[2] += (x > h);
+                return lmh;
+            },
+            [0, 0, 0]
+        );
+
+        colors = obj.options.thresholdColors || ["#005421", "#ffff00", "#ff0000"];
+        labels = obj.options.thresholdLabels || ["Under budget", "Watch out", "Over budget"]
+
+        // Get element in which to put chart
+        ctx = cvs.getContext("2d");
+
+        // Adjust size of chart
+        ctx.canvas.width = Math.min(
+            cvs.parentElement.clientWidth,
+            guesstimator.getWindowWidth()
+        );
+        ctx.canvas.height = Math.min(
+            300, 
+            0.75*guesstimator.getWindowWidth()
+        );
+
+        // Set pie dimensions
+        dims.xmid = ctx.canvas.width/2;
+        dims.ymid = ctx.canvas.height/2;
+        dims.r = Math.min(dims.xmid, 0.75*dims.ymid);
+        dims.ycent = 1.2*dims.ymid;
+
+        // Set background
+        ctx.fillStyle = "#000000";
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+        ctx.fillRect(0,0, ctx.canvas.width, ctx.canvas.height)
+
+        // Set start for pie.
+        start = 0;
+        end = -Math.PI/2;
+        
+        // Initialize text.
+        ctx.textAlign = "center";
+        dims.fontSize = dims.xmid/guesstimator.maxElementLength(labels);
+        ctx.font = "bold " + dims.fontSize.toString() + 
+            "px Arial, Helvetica, sans-serif";
+
+        for (k = 2; k >= 0; k--) {
+            // Make pie wedge
+            ctx.beginPath();
+            ctx.moveTo(dims.xmid, dims.ycent);
+            start = end;
+            end += (2*Math.PI)*lmhArr[k]/arr.length;
+            ctx.arc(dims.xmid, dims.ycent, dims.r, start, end);
+            ctx.fillStyle = colors[k];
+            ctx.fill();
+            // Make label
+            ctx.fillText(labels[k], (1+2*k)*dims.xmid/3, 0.25*dims.ymid);
+        }
+    }
+
+    // Add event listener using guesstimator event monitor.
+    guesstimator.events.addListener(
+        window, "resize", createPlot, 
+        {set : obj.chartID, debounce : true, ms : 100});
+
+    return createPlot
+}
+
+/** Utilities to get window or document height for different browsers */
+guesstimator.getWindowHeight = function() {
+    return (window.innerHeight
+        || document.documentElement.clientHeight
+        || document.body.clientHeight)
+}
+guesstimator.getWindowWidth = function() {
+    return (window.innerWidth
+        || document.documentElement.clientWidth
+        || document.body.clientWidth)
+}
+
+/**
+ * Get maximum length of elements of arr.
+ * @param {array} arr : array or string
+ * @return {number} Length of longest element of arr.
+ */
+guesstimator.maxElementLength = function(arr) {
+    return arr.reduce(function (accumulator, curVal, curInd, srcArr) {
+        return srcArr[curInd].length ? 
+            Math.max(accumulator, srcArr[curInd].length) : 
+            accumulator;
+    }, 0);
+}
+
+
 /**
  * Steps : 
  *  Create new object to save model:
@@ -418,7 +669,7 @@ guesstimator.histogram = function (obj) {
  *      and colors of charts.
  *      Arguments : xDists object
  *      must return {<label0> : {vals : [y0,y1,...], color : <color>}, <label1> ...}
- *  @param {string} chartDivID : ID for location to put chart
+ *  @param {string} chartID : ID for location to put chart
  *  @param {object} opts : 
  *      {n : number of random samples to generate,
  *      rng : range of chart; numeric 2-element array,
@@ -429,22 +680,32 @@ guesstimator.histogram = function (obj) {
  *      }
  *  @returns {object}
  */
-guesstimator.model = function (xDists, modelFun, chartDivID, opts){
+guesstimator.model = function (xDists, modelFun, chartID, opts){
     var gs = {
         "xDists" : guesstimator.deepCopy(xDists), 
         "modelFun" : guesstimator.deepCopy(modelFun),
-        "chartElementID" : chartDivID, 
-        "options" : opts ? guesstimator.deepCopy(opts) : {}
+        "chartID" : chartID
     };
     var k;
     gs.n = opts.n || 500;
 
+    // Remove any listeners called with model using same DOM element for chart
+    guesstimator.events.removeListenersInSet(chartID);
+    
+    gs.chartElement = document.getElementById(chartID); 
+
+    // Set chart options
+    gs["options"] = opts ? guesstimator.deepCopy(opts) : {};
+    // clear chart HTML element and associated object
+    gs["chartElement"].innerHTML = "";
+    gs.chart = null;
     // Choose what type of chart to make.
-    gs.createOrUpdateChart = (opts.chartType && guesstimator[opts.chartType]) ? 
-        guesstimator[opts.chartType](gs) : guesstimator.histogram(gs);
+    gs.options.chartType = gs.options.chartType || "histogram";
+    gs.createOrUpdateChart = guesstimator[gs.options.chartType] ? 
+        guesstimator[gs.options.chartType](gs) : guesstimator.histogram(gs);
 
     gs.update = function () {
-        var j, curval, item, obj, arr;
+        var j, curval, item, arr;
 
         // Initialize objects for storing selections and samples if they don't exist yet
         gs.xs = gs.xs || {};
@@ -468,13 +729,6 @@ guesstimator.model = function (xDists, modelFun, chartDivID, opts){
             return out;
         }
 
-        function getVal(IDstr) {
-            if (!document.getElementById(IDstr)) {
-                throw new Error("No DOM element found for '" + IDstr +"'")
-            }
-            return document.getElementById(IDstr).value;
-        }
-
         for (item in gs.xDists) {
             if (gs.xDists[item].hasOwnProperty("fixed")) {
                 // Handle fixed distributions (or constants)
@@ -484,7 +738,7 @@ guesstimator.model = function (xDists, modelFun, chartDivID, opts){
                 };
             } else if (gs.xDists[item].hasOwnProperty("select")) {
                 // Handle fields for selecting options
-                curval = getVal(item);
+                curval = guesstimator.getVal(item);
                 // Check if same selection as before (if no selection for selector before, 
                 // should return (falsy !== truthy) is true...
                 if (gs.choices[item] !== curval) {
@@ -499,7 +753,7 @@ guesstimator.model = function (xDists, modelFun, chartDivID, opts){
                 curval = [];
                 arr = gs.xDists[item]["input"].paramIDs;
                 for (j = 0; j < arr.length; j++) {
-                    curval.push(Number(getVal(arr[j])));
+                    curval.push(Number(guesstimator.getVal(arr[j])));
                 }
 
                 // Check if same selection as before (if no selection for selector before, 
@@ -519,24 +773,40 @@ guesstimator.model = function (xDists, modelFun, chartDivID, opts){
 
         gs.plotSeries = gs.modelFun(gs.xs);
 
-        gs.range = guesstimator.createRange(gs.plotSeries, gs.options.range, gs.options.rangeSDs, "vals");
+        if (gs.options.chartType === "histogram") {
+            gs.range = guesstimator.createRange(
+                gs.plotSeries, gs.options.range, gs.options.rangeSDs, "vals");
+        }
 
         gs.createOrUpdateChart();
     }
     gs.update();
 
-    document.addEventListener("change", gs.update);
+    guesstimator.events.addListener(
+        document, "change", gs.update,
+        {set : chartID}
+    );
+    //document.addEventListener("change", gs.update);
 
     return gs;
 }; 
 
+guesstimator.getVal = function (IDstr) {
+    if (!document.getElementById(IDstr)) {
+        throw new Error("No DOM element found for '" + IDstr +"'")
+    }
+    return document.getElementById(IDstr).value;
+}
+
 /**
- * @param {object} obj : data object
- * @param {array} arr : 2 element array; each element should be a number 
- *  or a name for a data series in obj.
+ * Create a range array based on data or fixed numbers.
+ * @param {object} obj : data object : {set1 : , set2 : ...};
+ *  dataseries* can be either array or object with array specified by key str
+ * @param {array} arr : 2 element array; each element should be either a number 
+ *  or a name for a data set in obj.
  * @param {number} sds : min number of standard deviations between data mean and range boundary
- * @param {string} vals : optional key to find data array for dataset in obj if data is 
- *  nested, e.g. {set1 : {values : [x1, x2...], color : string, ...}, set2 : {...}, ...}
+ * @param {string} str : optional key to find data array for dataset in obj if data is 
+ *  nested, e.g. obj = {set1 : {values : [x1, x2...], color : string, ...}, set2 : {...}, ...}
  * @return array with two numeric values.
  */
 guesstimator.createRange = function (obj, arr, sds, str) {
@@ -569,36 +839,6 @@ guesstimator.createRange = function (obj, arr, sds, str) {
 
     return rng;
 };
-
-/**
- * Range calculation : 
- * 0) User specifies series to calculate range min and max from; can specify number for min or max or both.
- * Simplest form : default enters [<number>, <number>], alternate : [<string>, <string>] (strings are names of series),
- * specify number of sds from mean (warn if <0, but choose 2)
- * 1) get raw range min and range max (can be any numbers) : user should be able to provide either min or max
- * 2) Convert raw range min and max into tidy values
- * 
- * rangeFun (arr, nSDs, obj, key) {
- *  var out = [0,0];
- *  var raw = {};
- *  if (arr is not 2 element array) {
- *      throw new Error("range must be two element array")
- *  } else if (arr.every(!isNaN ) {
- *      
- *  }
- *  for (k=0; k<2; k++) {
- *   if (typeof arr[k] === 'string') {
- *      raw[str] = {};
- *      raw[str].vals = key ? obj[str][key] : obj[str];
- *      raw[str].mean = guesstimator.mean(arr[str].vals);
- *      raw[str].sd = guessimator.stdev(arr[str].vals);
- *      raw[min
- *   }
- *  }
- * }
- * 
- *
- */
 
 /**
  * Copy an object by value (handles circular or anastamosing
@@ -667,89 +907,129 @@ guesstimator.deepCopy = function (objParent) {
     return deepCopyInner(objParent);
 }
 
-//  /**
-//   * Custom error generrator
-//   * From " https://humanwhocodes.com/blog/2009/03/10/the-art-of-throwing-javascript-errors-part-2/ "
-//   * @param {string} message 
-//   */
-// function Error(message){
-//     this.message = message;
-// }
-// Error.prototype = new Error();
+/** Create object to manage event listeners associated with guesstimator script */
+guesstimator.events = (function () {
+    var ev = {};
+    // Keep track of number of listeners created to make unique keys.
+    var numListenersCreated = 0;
+    // Store current listeners
+    ev.listeners = {};
 
-// /**
-//  * Extract data from dataObj sublevels and put in highest level in new object
-//  * 
-//  * @param {object} dataObj : {<name0> : {... <dataKey> : <data0>}...}
-//  * @param {array} keyArr : array of keys (strings) to reach datarray
-//  * @return object : {<name0> : <data0>, <name1> : <data1>, ...}
-//  */
-// guesstimator.sublevelsToPrimary = function (dataObj, keyArr) {
-//     var k, key, curData = {};
+    /**
+     * Function to prevent repeated calls to resize (or other event listeners) during
+     * manual size changes (or other events). Code from BGerrissen on Stack Overflow (
+     *    https://stackoverflow.com/questions/4298612/jquery-how-to-call-resize-event-only-once-its-finished-resizing
+     *)
+    * @param {function} func : function to call with event listener
+    * @param {number} timeout : ms to wait to call.
+    */
+    function debounce( func , timeout ) {
+        var timeoutID , timeout = timeout || 200;
+        return function () {
+            var scope = this , args = arguments;
+            clearTimeout( timeoutID );
+            timeoutID = setTimeout( function () {
+                func.apply( scope , Array.prototype.slice.call( args ) );
+            } , timeout );
+        }
+    };
 
-//     // Extract data from dataObj sublevels and put in highest level in new object
-//     for (key in dataObj) {
-//         curData[key] = dataObj[key];
-//         for (k = 0; k<keyArr.length; k++) {
-//             if (curData[key].hasOwnProperty(keyArr[k])) {
-//                 curData[key] = curData[key][keyArr[k]];
-//             } else {
-//                 throw new Error("Data not found for '" + key + "',  with key: " + keyArr[k]);
-//             }
-//         }
-//     }
-//     return curData;
-// };
+    /**
+     * Add a listener to guesstimator.events object
+     * @param {DOM object} el : DOM element to add event listener to
+     * @param {string} str : event type (e.g. 'resize')
+     * @param {function} func : function
+     * @param {object} opts : optional arguments
+     *  * @param {string/number} set : determine which set to add listener to
+        * @param {boolean} debounce : determine whether to delay application
+        *  with debounce; must be strictly true to apply.
+        * @param {number} ms : number of milliseconds; defaults to 200 if not
+        *  given or not a number
+     * @returns {string} Name of key in list of event listeners 
+     *  (guesstimator.events.listeners)
+     */
+    ev.addListener = function (el, str, func, opts) {
+        // Create a name for the listener.
+        var obj = {target : el, event : str};
+        var opts = opts || {};
+        // Need unique names that will stay unique if a listener is removed.
+        var key = "L";
+        numListenersCreated ++;
+        key += numListenersCreated;
 
-// /**
-//  * Identify which series is likely to be the largest one based on random sample.
-//  * 
-//  * @param {object} dataObj : {<name0> : {... <dataKey> : <dataArray>}...}
-//  * @param {array} keyArr : array of keys (strings) to reach datarray
-//  * @param {number} n : number of random samples to take
-//  * @return {string} name of first key in series of keys to reach maximum of data
-//  */
-// guesstimator.guessMax = function (dataObj, keyArr, n) {
-//     var k, key, keyMax;
-//     var mn, mnMax;
-//     var curLength;
-//     var positions = [];
-//     // Extract data from dataObj sublevels and put in highest level in new object
-//     var curData = guesstimator.sublevelsToPrimary(dataObj, keyArr);
+        // Set debounce time.
+        var ms = typeof opts.ms === "number" ? opts.ms : 200;
+        // Debounce listener if db is strictly true.
+        obj.listener = (opts.debounce === true) ? debounce(func, ms) : func;
 
-//     // Get and check lengths of data in curData
-//     for (key in dataObj) {        
-//         if (Array.isArray(curData[key])) {
-//             if (!curLength) {
-//                 curLength = curData[key].length;
-//             } else if (curLength !== curData[key].length) {
-//                 throw new Error("Arrays in data object should be same length")
-//             }
-//         } else if (!typeof curData[key] === "number") {
-//             throw new Error("Data must be arrays or numbers")
-//         }
-//     }
+        // Add event listener
+        el.addEventListener(str, obj.listener);
 
-//     // Get random set of positions.
-//     if (curLength) {
-//         for (k = 0; k < n; k++) {
-//             positions.push(Math.floor(Math.random()*curLength))
-//         }
-//     } else {
-//         n = 1;
-//         positions.push(0);
-//     }
+        // If set specified, add set to listener object and list listener in event set
+        if (typeof opts.set === "string" || typeof opts.set === "number") {
+            obj.set = opts.set;
+            // or create event set if it doesn't exist
+            if (!ev.sets) {
+                ev.sets = {};
+            }
+            if (!ev.sets[opts.set]) {
+                ev.sets[opts.set] = {};
+            }
+            // Just set value to true to avoid excess references to object
+            ev.sets[opts.set][key] = true; 
+        }
+        
+        // Add listener object to ev.listeners and return key if want to remove
+        // later.
+        ev.listeners[key] = obj;
+        return key;
+    };
 
-//     // Find which array (comparing scalars as length n arrays of repeated values) 
-//     // has larger mean.
-//     for (key in curData) {
-//         mn = 0;
-//         for (k = 0; k<n; k++) {
-//             mn += (curData[key].length) ? curData[key][positions[k]] : curData[key];
-//         }
-//         mnMax = (mnMax && mn<mnMax) ? mnMax : mn;
-//         keyMax = (mn === mnMax) ? key : keyMax;
-//     }
+    /** Remove all event listeners associated with guesstimator. 
+     * 
+    */
+    ev.removeAllGuesstimatorListeners = function () {
+        var key, obj;
+        for (key in ev.listeners) {
+            obj = ev.listeners[key];
+            // Remove event listener associated with key.
+            obj.target.removeEventListener(
+                obj.event, obj.listener);
+        }
+    };
 
-//     return keyMax;
-// };
+    /**
+     * Remove a named set of listeners
+     * @param {string} str : name of set of listeners in events.sets
+     */
+    ev.removeListenersInSet = function (str) {
+        var key;
+        // Remove each event in set if set exists.
+        if (ev.sets && ev.sets[str]) {
+            // remove each listener (deletes key from ev.sets[str])
+            for (key in ev.sets[str]) {
+                ev.removeGuesstimatorListener(key)
+            }
+            // Delete key for set from ev.sets
+            delete ev.sets[str];
+        }
+    }
+
+    /** Remove a single event listener by its name. 
+     * @param {string} key : name of object in 
+     * guesstimator.events.listeners associated with event listener
+    */
+    ev.removeGuesstimatorListener = function (key) {
+        var obj = ev.listeners[key];
+        // remove listener
+        obj.target.removeEventListener(obj.event, obj.listener);
+        // remove from listener set if defined
+        if (obj.set) {
+            delete ev.sets[obj.set][key]
+        }
+        // Remove key from ev.listeners object
+        delete ev.listeners[key];
+    }
+
+    return ev;
+})();
