@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">  
+    <script src="Chart.min.js"></script>
+    <script src="Estimator2.js"></script>
+    <style>
+        .footnotes {
+            font-size: 0.8rem
+        }
+        .minMaxWidth {
+            width: 380px;
+        }
+        @media (min-width: 380px) {
+            .minMaxWidth {
+                width: 97%;
+            }
+        }
+        @media (min-width: 618px) {
+            .minMaxWidth {
+                width: 600px;
+            }
+        }
+    </style>
+
+</head>
+<body style="font-size:1.3rem">
+    <noscript style="color:#ff0000">
+        Javascript appears to be disabled on your browser. This page requires javascript.
+    </noscript>
+    <div class = "minMaxWidth" id="mainDiv">
+        <h3>Construction cost guesstimator </h3>
+        <p style="font-size:0.9rem"> 
+            To get a ball-park idea of construction costs, select from options
+            below. <a href="#footnotes"> - [note 1]</a>
+        </p>
+        <!--
+            Code selectors in HTML so can control location; 
+                classes should include guesstimator instance
+        -->
+        Land cost (thousands of dollars): 
+        <input type="number" id="Land" value="100" step="5">
+        <br/> House size (sq ft): 
+        <select id="Size" class="gs1">
+            <option value="1200 to 1700">1200 to 1700</option>
+            <option value="1700 to 2300">1700 to 2300</option>
+            <option value="2300 to 2800">2300 to 2800</option>
+        </select>
+        <br/>Finish and other options: 
+        <select id="Finishings" class="gs1">
+            <option value="Basic">Basic</option>
+            <option value="Medium">Medium</option>
+            <option value="HighEnd">High-end</option>
+        </select> <a href="#footnotes" class="footnotes"> - [note 2]</a>
+        <br/> Water: 
+        <select id="Water" class="gs1">
+            <option value="Installed">Already installed</option>
+            <option value="Private well">Private well</option>
+            <option value="Roche">Town hookup</option>
+            <option value="Roche">Roche hookup</option>
+            <option value="Other: $500 - $3000">Other: $500 - $3000</option>
+            <option value="Other: $3000 - $10000">Other: $3000 - $10000</option>
+            <option value="Other: $10000 - $30000">Other: $10000 - $30000</option>
+        </select>
+        Septic/Sewer: 
+        <select id="Sewage" class="gs1">
+            <option value="Installed">Already installed</option>
+            <option value="Private System">Private System</option>
+            <option value="Town hookup">Town hookup</option>
+            <option value="Roche hookup">Roche hookup</option>
+        </select>
+        <br/>Length of utility trenching needed: <br/>
+        <span class="footnotes">Include power to house, water to house,
+             and house to septic/sewage. </span>
+        <br/>
+        <input type="number" id="TrenchingMin" value="50" step="5">
+        ft to
+        <input type="number" id="TrenchingMax" value="600" step="5">
+        ft <br/>
+        Do you need a new transformer?
+        <input id="TransformerNeeded" type="checkbox" value="0" 
+        onclick="checkedToValue('TransformerNeeded')">
+        <a href="#footnotes" class="footnotes"> - [note 3]</a>
+        <br/>
+        <p>
+            Plot type: 
+            <select id="chartType">
+                <option value="Total">Display total</option>
+                <option value="all">Display components</option>
+            </select>
+        </p>
+    </div>
+    <!-- Canvas for chart -->
+    <div class="minMaxWidth" id="myChart"></div>
+    <div class="footnotes" id="footnotes">
+        <h3>Footnotes</h3>
+        <ol>
+            <li>Clearing, landscaping, permits, etc. not included</li>
+            <li>Finish and other options:
+                <ul>
+                    <li>Basic : $250 per square foot; homes with formica, vinyl, and carpet.</li>
+                    <li>Medium : $350 per square foot; homes with hardwoods, granite, 
+                        and a nice appliance package</li>
+                    <li>High-end : $450 per square foot</li>
+                </ul>
+            </li>
+            <li>If trenching exceeds 350 ft, additional tranformers will 
+                be inluded in estimate.</li>
+        </ol>
+    </div>
+
+<script>
+    var myGuests = {
+        'Land' : {
+            'input' : {'paramIDs' : ['Land'], 'distribution' : 'nDelta'}
+        },
+        'Size' : {
+            'select' : {
+                '1200 to 1700' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [1200, 1700], 
+                },
+                '1700 to 2300'  : {
+                    'distribution' : 'nRandUniform', 
+                    'params' : [1700, 2300], 
+                },
+                '2300 to 2800': {
+                    'distribution' : 'nRandUniform', 
+                    'params' : [2300, 2800],
+                }
+            }
+        },
+        'Finishings' : {
+            'select' : {
+                // Enter in thousands of dollars
+                'Basic' : 0.250,
+                'Medium' : 0.350,
+                'HighEnd' : 0.450,
+            }
+        },
+        'Sewage' : {
+            'select' : {
+                'Installed' : 0,
+                'Private System' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [25, 40], // $1000s
+                },
+                'Town hookup': 14.735, // $1000s
+                'Roche hookup' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [16, 18], // $1000s
+                },
+            }
+        },
+        'Water' : { 
+            'select' : {
+                'Installed' : 0,
+                'Private well' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [25, 30], // $1000s
+                },
+                'Town' : 13.325,// $1000s
+                'Roche' : 13,// $1000s
+                'Other: $500 - $3000' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [0.5, 3], // $1000s
+                },
+                'Other: $3000 - $10000' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [3, 10], // $1000s
+                },
+                'Other: $10000 - $30000' : {
+                    'distribution' : 'nRandUniform',
+                    'params' : [10, 30], // $1000s
+                },
+            },
+        },
+        'TransformerCost' : {
+            'fixed' : 5, // $1000s
+        },
+        'TransformerNeeded' : {
+            'input' : {
+                'paramIDs' : ['TransformerNeeded'], 
+                'distribution' : 'nDelta',
+            }
+        },
+        'FeetPerTransformer' : {
+            'fixed' : 350, // From talking to OPALCO in July, 2018
+        },
+        'TrenchLength' : {
+            'input' : {
+                'paramIDs' : ['TrenchingMin', 'TrenchingMax'], 
+                'distribution' : 'nRandUniform',
+            }
+        },
+        'TrenchCostPerFoot' : {
+            'fixed' : 0.016, // $1000s; Should be distribution?
+        }
+    }
+
+    function myFunGen(display) {
+        var display = display;
+        return function(xs) {
+            var pltSrs;
+            var ys = {};
+
+            ys["House"] = {"vals" : guesstimator.mult(xs["Size"], xs["Finishings"]),
+                "color" : "#a9a000"
+            };
+            ys["Land"] = {"vals" : xs["Land"],
+                "color" : "#22cc00"
+            };
+            ys["Sewage"] = {"vals" : xs["Sewage"],
+                "color" : "#654321"};
+            ys["Water"] = {"vals" : xs["Water"],
+                "color" : "#0000ff"
+            };
+            ys["Trenching"] = {
+                "vals" : guesstimator.mult(xs["TrenchLength"], xs['TrenchCostPerFoot'] ),
+                "color" : "#bb0000"
+            };
+            ys["Transformers"] = {
+                "vals" : 
+                guesstimator.mult(
+                    xs["TransformerCost"],
+                    guesstimator.add(
+                        xs["TransformerNeeded"], 
+                        guesstimator.elementByElement(
+                            xs['TrenchLength'], xs['FeetPerTransformer'], 
+                            function(a, b) {return Math.floor(a/b)}
+                        )
+                    )
+                ),
+                "color" : "#bbbbbb"
+            };
+            ys["Total"] = {
+                "vals" : 
+                    guesstimator.add(
+                        guesstimator.add(
+                            guesstimator.add(ys["House"].vals, ys["Land"].vals),
+                            guesstimator.add(ys["Water"].vals, ys["Sewage"].vals)
+                        ), 
+                        guesstimator.add(ys["Trenching"].vals, ys['Transformers'].vals)
+                    ),
+                "color" : "#000000"
+            };
+            if (display==="all") {
+                pltSrs = ys;
+            } else if (ys.hasOwnProperty(display)) {
+                pltSrs = {};
+                pltSrs[display] = ys[display];
+            } else {
+                throw new Error(display.toString() + " not in ys in myFun" )
+            }
+            return pltSrs;
+        }
+    }
+
+    function checkedToValue(str) {
+        var el = document.getElementById(str);
+        el.value = Number(el.checked);
+    }
+
+    window.onload = function () {
+        // Scale sample size to speed of device.
+        var dtTest = 100; // Test time in milliseconds;
+        var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
+        var m = guesstimator.timeTest(dtTest); // Samples generated over dt
+        // Cut off at maximum useful sample size of 100000 and minimum of 500
+        m = Math.max(Math.min(Math.floor(tScale * m), 100000), 500);
+
+        // Options for different chart types.
+        var chartOpts = {
+            chartType : "histogram", maxTicksLimit : 5, xLabel: "Cost (in $1000s)",
+            yLabel: "Probability", binCount : 100, range : [0, 2000], n : m,
+        }
+
+        // DOM element for selector for chart type
+        var chartToggleEl = document.getElementById("chartType");
+
+        // Handle check boxes as values
+        checkedToValue("TransformerNeeded")
+
+        // Read inputs, run model, and produce graph
+        guesstimator.model(myGuests, myFunGen(chartToggleEl.value), "myChart", chartOpts);
+        
+        chartToggleEl.addEventListener("change", function(){
+            guesstimator.model(myGuests, myFunGen(chartToggleEl.value), "myChart", chartOpts);
+        })
+    };
+
+</script>
+</body>
