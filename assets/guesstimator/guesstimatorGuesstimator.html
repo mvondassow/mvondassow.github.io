@@ -4,7 +4,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">  
     <script src="Chart.min.js"></script>
-    <script src="Estimator2.js"></script>
+    <script src="Guesstimator-0.1.0.min.js"></script>
     <style>
         p {
             font-size:1rem;
@@ -270,7 +270,7 @@
             'select' : {
                 'Simple' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [50, 150],
+                    'params' : [75, 200],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
                 'Complex' : {
@@ -284,12 +284,12 @@
             'select' : {
                 'Experience' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [75, 150],
+                    'params' : [100, 250],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
                 'Sales data' : {
                     'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [150, 500],
+                    'params' : [150, 600],
                     'transform' : 'lognormFrom10thAnd90thPercentiles',
                 },
                 'Research' : {
@@ -388,7 +388,7 @@
         );
         guesstimator.model(myCosts, myCostFun, "costChart", 
             {
-                n : m, binCount : 2*bc, range : [0, 7500],
+                n : m, binCount : 2*bc, range : [0, 7500], //"Total"], rangeSDs : 3, //7500],
                 chartType : "histogram", maxTicksLimit : 5, xLabel: "Cost ($)",
                  yLabel: "Probability", // showToolTips : true,
             }

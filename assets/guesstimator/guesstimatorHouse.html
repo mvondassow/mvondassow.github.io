@@ -4,7 +4,7 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">  
     <script src="Chart.min.js"></script>
-    <script src="Estimator2.js"></script>
+    <script src="Guesstimator-0.1.0.min.js"></script>
     <style>
         .minMaxWidth {
             width: 380px;
@@ -68,13 +68,14 @@
             <select id="chartType" onchange="togglePlotType(this, 'Budget', 'overUnderPlot')">
                 <option value="histogram">Probability curves</option>
                 <option value="overUnderPlot">Over/under budget</option>
+                <option value="scatter">Scatter</option>
             </select>
         </p>
         <p id="Budget" style="display: none"> Budget: 
             <br/> &emsp;Hard limit: 
-            <input id="highThreshold" type="number" value="600" step="10"/>
+            <input id="highThreshold" type="number" value="500" step="10"/>
             <br/> &emsp;Discomfort limit: 
-            <input id="lowThreshold" type="number" value="450" step="10"/>
+            <input id="lowThreshold" type="number" value="400" step="10"/>
         </p>
     </div>
     <!-- Canvas for chart -->
@@ -192,7 +193,23 @@
             "histogram" : {
                 chartType : "histogram", maxTicksLimit : 9, xLabel: "Cost (in $1000s)",
                 yLabel: "Probability", binCount : 100, range : [0, 1000], n : m,
+                labels : {
+                    prefix : "$", 
+                    suffix : "K", 
+                    decimals : 0,
+                },
             },
+            "scatter" : {
+                chartType : "scatter", maxTicksLimit : 3, xLabel: "Cost (in $1000s)",
+                range : [0, 1000], n : m, 
+                labels : {
+                    prefix : "$", 
+                    suffix : "K", 
+                    decimals : 0,
+                },
+                opacity : 0.333,
+                title : "Cost"
+            }
         }
         // DOM element for selector for chart type
         var chartToggleEl = document.getElementById("chartType");

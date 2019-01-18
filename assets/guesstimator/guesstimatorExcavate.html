@@ -6,18 +6,18 @@
     <script src="Chart.min.js"></script>
     <script src="Guesstimator-0.1.0.min.js"></script>
     <style>
+        .footnotes {
+            font-size: 0.8rem
+        }
         .minMaxWidth {
             width: 380px;
         }
-        .anchorService {
-            display:none;
-        }
         @media (min-width: 380px) {
             .minMaxWidth {
-                width: 100%;
+                width: 97%;
             }
         }
-        @media (min-width: 600px) {
+        @media (min-width: 618px) {
             .minMaxWidth {
                 width: 600px;
             }
@@ -30,53 +30,27 @@
         Javascript appears to be disabled on your browser. This page requires javascript.
     </noscript>
     <div class = "minMaxWidth">
-        <h3>Trucking cost guesstimator </h3>
+        <h3>Trenching cost guesstimator </h3>
         <p style="font-size:0.9rem"> 
-            To see a ball-park distribution of transport prices, 
+            To see a ball-park distribution of trenching costs 
             for different circumstances, enter values/selections
-            below. Precise estimates depend on other factors, such
-            as container shape/type, timing, weight, etc.
+            below.
         </p>
-    </div>
-    <div class = "minMaxWidth singleTrip">
         <!--
             Code selectors in HTML so can control location; 
                 classes should include guesstimator instance
         -->
-        <br/> Volume (cubic feet)? 
-        <input type="number" id="Volume" value="80" step="1">
-        <br/> Perishable?
-        <select id="Perishability" class="gs1">
-            <option value="Non-perishable">Non-perishable</option>
-            <option value="Frozen">Frozen</option>
-            <option value="Perishable">Perishable</option>
+        Trench length (ft): 
+        <br/>Minimum: <input type="number" id="MinLength" value="250" step="5">
+        <br/>Maximum: <input type="number" id="MaxLength" value="350" step="5">
+        <br/> Amount of rock: 
+        <select id="RockFraction" class="gs1">
+            <option value="0 to 25 %">0 to 25 %</option>
+            <option value="25 to 50 %">25 to 50 %</option>
+            <option value="50 to 75 %">50 to 75 %</option>
+            <option value="75 to 100 %">75 to 100 %</option>
         </select>
-        Fragile? 
-        <select id="Fragility" class="gs1">
-            <option value="Non-fragile">Non-fragile</option>
-            <option value="Fragile">Fragile</option>
-        </select>
-        <br/> Specialty items?
-        <select id="Specialties" class="gs1">
-            <option value="None">None</option>
-            <option value="Wine/liquor">Wine/liquor</option>
-        </select>
-        <br/>Pick up location: 
-        <select id="Pick up" class="gs1">
-            <option value="Regular stop">Regular stop</option>
-            <option value="<2.5 miles">&lt;2.5 miles</option>
-            <option value="<15 miles">&lt;15 miles</option>
-        </select>
-        Drop off location: 
-        <select id="Drop off" class="gs1">
-            <option value="Regular stop">Regular stop</option>
-            <option value="<2.5 miles">&lt;2.5 miles</option>
-            <option value="<15 miles">&lt;15 miles</option>
-        </select>
-        <br/>
-        
-        Storage (days): 
-        <input type="number" id="Storage" value="0" step="1">
+        - <a href="#footnotes">[1]</a>
         <br/>
         <p>
             Plot type: 
@@ -89,7 +63,7 @@
         <div id="histogram" style="display: none"> 
             <p style="font-size:0.9rem">
                 The height of the graphed line shows how often you'd expect to pay the 
-                cost on the horizontal axis, given the business's pricing model and your 
+                cost on the horizontal axis, given a pricing model and your 
                 choices above. 
                 Each line represents a different component (you can hide them by clicking 
                 them in the legend).
@@ -103,9 +77,9 @@
             <p>
                 Budget limits: 
                 <br/> &emsp;Hard limit: 
-                <input id="highThreshold" type="number" value="300" step="10"/>
+                <input id="highThreshold" type="number" value="10000" step="10"/>
                 <br/> &emsp;Discomfort limit: 
-                <input id="lowThreshold" type="number" value="150" step="10"/>
+                <input id="lowThreshold" type="number" value="7000" step="10"/>
             </p>
         </div>
         <div id="scatter" style="display: none"> 
@@ -117,115 +91,85 @@
         </div>
     </div>
     <!-- Canvas for chart -->
-    <div class="minMaxWidth singleTrip" id="myChart"></div>
+    <div class="minMaxWidth" id="myChart"></div>
+    
+    <div class="footnotes minMaxWidth" id="footnotes">
+        <h3>Footnotes</h3>
+        <ol>
+            <li> Rock may not be visible from the surface.</li>
+        </ol>
+    </div>
 
 <script>
     var myGuests = {
-        'Base' : {
-            'fixed' : 10,
+        'Length' : {
+            'input' : {'paramIDs' : ['MinLength', 'MaxLength'], 'distribution' : 'nRandUniform'}
         },
-        'Volume' : {
-            'input' : {'paramIDs' : ['Volume'], 'distribution' : 'nDelta'}
-        },
-        'Scale' : {
-            'fixed' : 1.55,
-        },
-        'Perishability' : {
+        'RockFraction' : {
             'select' : {
-                'Non-perishable' : 1,
-                'Frozen'  : 1.25,
-                'Perishable': {
-                    'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [1, 1.5],
-                    'transform' : 'lognormFrom10thAnd90thPercentiles',
-                }
-            }
-        },
-        'Fragility' : {
-            'select' : {
-                'Non-fragile' : {
-                    'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [0.9, 1.1],
-                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                '0 to 25 %' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0, 0.25], //[90, 125], // Loosly based on Coach Corral
                 },
-                'Fragile' : {
-                    'distribution' : 'nRandLognorm', // 'nRandUniform',
-                    'params' : [1, 1.75],
-                    'transform' : 'lognormFrom10thAnd90thPercentiles',
+                '25 to 50 %' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0.25, 0.5], //[90, 125], // Loosly based on Coach Corral
+                },
+                '50 to 75 %' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0.5, 0.75], //[90, 125], // Loosly based on Coach Corral
+                },
+                '75 to 100 %' : {
+                    'distribution' : 'nRandUniform', // 'nRandUniform',
+                    'params' : [0.75, 1], //[90, 125], // Loosly based on Coach Corral
                 },
             }
         },
-        'Specialties' : { 
-            'select' : {
-                'None' : 1,
-                'Wine/liquor' : 1.5,
-            },
+        'Drop' : {
+            'fixed' : 400,
         },
-        'Pick up' : {
-            'select' : {
-                'Regular stop' : 0,
-                '<2.5 miles' : {
-                    'distribution' : 'nRandUniform', // 'nRandUniform',
-                    'params' : [0, 10],
-                },
-                '<15 miles' : {
-                    'distribution' : 'nRandUniform', // 'nRandUniform',
-                    'params' : [7, 75],
-                },
-            }
+        'RockPricePerHour' : {
+            'fixed' : 250,
         },
-        'Drop off' : {
-            'select' : {
-                'Regular stop' : 0,
-                '<2.5 miles' : {
-                    'distribution' : 'nRandUniform', // 'nRandUniform',
-                    'params' : [0, 10],
-                },
-                '<15 miles' : {
-                    'distribution' : 'nRandUniform', // 'nRandUniform',
-                    'params' : [7, 75],
-                },
-            }
+        'SoilPricePerHour' : {
+            'fixed' : 180,
         },
-        'Storage' : {
-            'input' : {'paramIDs' : ['Storage'], 'distribution' : 'nDelta'}
+        'RockHrsPerFt' : {
+            'fixed' : {'distribution' : 'nRandUniform', 'params' : [0.13, 0.26]}
         },
-        'PerDay' : {
-            'fixed' : 3,
-        },
+        'SoilHrsPerFt' : {
+            'fixed' : {'distribution' : 'nRandUniform', 'params' : [0.044, 0.075]}
+        }
     }
 
     function myFun(xs) {
         var pltSrs = {};
-        pltSrs["Total"] = {};
-        pltSrs["Base"] = {"vals" : xs["Base"],
+        var rock = guesstimator.mult(xs["Length"], xs["RockFraction"]);
+        var soil = guesstimator.subt(xs["Length"], rock);
+        pltSrs["Equipment Drop"] = {"vals" : xs["Drop"],
             "color" : "#a9a000"};
-        pltSrs["Load"] = {"vals" : guesstimator.mult(
-                guesstimator.mult(
-                    guesstimator.mult(xs["Volume"], xs["Scale"]), 
-                    guesstimator.mult(xs["Perishability"], xs["Fragility"]) 
-                ), xs["Specialties"]
-            ),
+        pltSrs["RockHammering"] = {"vals" : guesstimator.mult(guesstimator.mult(rock, xs["RockHrsPerFt"]), xs["RockPricePerHour"]),
             "color" : "#22cc00"};
-        pltSrs["Travel"] = {"vals" : guesstimator.add(xs["Pick up"],xs["Drop off"]), "color" : "#bbbbbb"};
-        pltSrs["Storage"] = {"vals" : guesstimator.mult(xs["Storage"], xs["PerDay"]), "color" : "#aaaaff"}
+        pltSrs["SoilTrenching"] = {"vals" : guesstimator.mult(guesstimator.mult(soil, xs["SoilHrsPerFt"]), xs["SoilPricePerHour"]),
+            "color" : "#654321"};
         pltSrs["Total"] = {
             "vals" : 
                 guesstimator.add(
-                    guesstimator.add(pltSrs["Travel"].vals, xs["Base"]), 
-                    guesstimator.add(pltSrs["Load"].vals, pltSrs["Storage"].vals)
+                    guesstimator.add(
+                        pltSrs["Equipment Drop"].vals, pltSrs["RockHammering"].vals
+                    ), pltSrs["SoilTrenching"].vals
                 ),
-             "color" : "#000000", "borderWidth" : 2, "opacity" : 0.6};
+             "color" : "#000000"};
         return pltSrs
     }
-
+    
     /**
      * Toggle display on or off for array of id strings based on
      * value of DOM object.
      * @param {object} obj : DOM element whose value gets read.
      * @param {array} toggleElIDs : array of strings (DOM element IDs)
      */
-    function togglePlotType(obj, toggleElIDs) {
+     function togglePlotType(obj, toggleElIDs) {
         var k, el, str;
         for (k = 0; k< toggleElIDs.length; k++) {
             str = toggleElIDs[k];
@@ -238,15 +182,13 @@
         }
     }
 
-
     window.onload = function () {
         // Scale sample size to speed of device.
         var dtTest = 100; // Test time in milliseconds;
         var tScale = 0.25; // Run time should be tScale * dtTest (approximately)
         var m = guesstimator.timeTest(dtTest); // Samples generated over dt
-        var bc = 100;
         // Cut off at maximum useful sample size of 100000 and minimum of 500
-        m = Math.max(Math.min(bc*Math.floor(tScale * m/bc), 1000*bc), 5*bc);
+        m = Math.max(Math.min(Math.floor(tScale * m), 100000), 500);
 
         // Options for different chart types.
         var chartOpts = {
@@ -255,8 +197,8 @@
                 "highThreshold", lowThreshold : "lowThreshold", n : m,
             },
             "histogram" : {
-                chartType : "histogram", maxTicksLimit : 10, xLabel: "Cost (in $1000s)",
-                yLabel: "Probability", binCount : bc, range : [0, 600], n : m,
+                chartType : "histogram", maxTicksLimit : 5, xLabel: "Cost",
+                yLabel: "Probability", binCount : 100, range : [0, 20000], n : m,
                 labels : {
                     prefix : "$", 
                     suffix : "", 
@@ -264,8 +206,8 @@
                 },
             },
             "scatter" : {
-                chartType : "scatter", maxTicksLimit : 4, xLabel: "Cost (in $1000s)",
-                range : [0, 600], n : m, 
+                chartType : "scatter", maxTicksLimit : 4, xLabel: "Cost",
+                range : [0, 20000], n : m, 
                 labels : {
                     prefix : "$", 
                     suffix : "", 
@@ -285,7 +227,7 @@
         chartToggleEl.addEventListener("change", function(){
             guesstimator.model(myGuests, myFun, "myChart", chartOpts[chartToggleEl.value]);
         })
-    }
+    };
 
 </script>
 </body>

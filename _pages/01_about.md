@@ -5,7 +5,7 @@ permalink: /about/
 ---
 <p style="text-align: center;">--<i>UNDER CONSTRUCTION</i>--</p>
 
-I am a scientist by nature and by training, with a background in biology. I currently work as a freelance coder and data analyst, and I recently became a volunteer firefighter on the island where I live. I am also interested in physics, astronomy, and pie.
+I am a scientist by nature and by training, with a background in biology. I currently work as a freelance coder and data analyst, and I recently became a volunteer firefighter on the island where I live.
 
 <img src="/assets/Headshot.jpg" style="width:25%">
 
